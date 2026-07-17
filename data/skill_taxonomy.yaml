@@ -1,0 +1,186 @@
+# Skill taxonomy for Opportune
+# Each key is a skill cluster; values are specific skills.
+Programming Languages:
+  - Python
+  - Java
+  - JavaScript
+  - TypeScript
+  - C++
+  - C#
+  - Go
+  - Rust
+  - Scala
+  - Kotlin
+  - SQL
+  - Spark SQL
+  - HTML
+  - CSS
+Frameworks & Libraries:
+  - React
+  - Angular
+  - Vue.js
+  - Svelte
+  - Node.js
+  - Express
+  - Django
+  - Flask
+  - FastAPI
+  - Streamlit
+  - Spring Boot
+  - .NET
+  - TensorFlow
+  - PyTorch
+  - Keras
+  - Scikit-learn
+  - Pandas
+  - NumPy
+  - Spark
+  - Hadoop
+Generative AI & LLM Tooling:
+  - LLM
+  - Generative AI
+  - Applied AI
+  - Agentic AI
+  - AI Agents
+  - Agent Orchestration
+  - Multi-Agent Systems
+  - LLM Applications
+  - LLM-powered applications
+  - RAG
+  - RAG pipelines
+  - LangChain
+  - LangGraph
+  - OpenAI APIs
+  - Azure OpenAI
+  - Gemini APIs
+  - Claude APIs
+  - Hugging Face
+  - RAGAS
+  - LangSmith
+  - Prompt Engineering
+  - Prompt Evaluation
+  - LLM Evaluation
+  - Tool Execution
+  - Function Calling
+  - Copilot-Style Assistants
+  - Structured Outputs
+Vector Search & Retrieval:
+  - FAISS
+  - Chroma
+  - ChromaDB
+  - Qdrant
+  - Pinecone
+  - Embeddings
+  - Semantic Search
+  - Hybrid Search
+  - Hybrid Retrieval
+  - BM25
+  - Reranking
+  - Cross-Encoder Reranking
+  - Metadata Filtering
+  - Top-k Retrieval
+Databases:
+  - MySQL
+  - PostgreSQL
+  - MongoDB
+  - Redis
+  - Elasticsearch
+  - Cassandra
+  - DynamoDB
+  - SQLite
+  - Snowflake
+  - Delta Lake
+  - Synapse
+Cloud & DevOps:
+  - AWS
+  - Azure
+  - GCP
+  - Google Cloud
+  - Azure Databricks
+  - Databricks
+  - Azure Data Factory
+  - ADLS Gen2
+  - Azure Monitor
+  - S3
+  - EMR
+  - Docker
+  - Kubernetes
+  - Terraform
+  - Ansible
+  - Jenkins
+  - GitLab CI
+  - GitHub Actions
+  - Prometheus
+  - Grafana
+Data Engineering:
+  - ETL
+  - ELT
+  - ETL/ELT
+  - dbt
+  - Data Modeling
+  - Data Warehousing
+  - Lakehouse Pipelines
+  - Data Processing
+  - Data Validation
+  - Data Cleaning
+  - Feature Engineering
+  - Airflow
+  - Kafka
+  - Kinesis
+  - Redshift
+  - BigQuery
+Software Engineering:
+  - REST API
+  - REST APIs
+  - GraphQL
+  - Microservices
+  - API Design
+  - Shared Services
+  - OOP
+  - Design Patterns
+  - TDD
+  - BDD
+  - Agile
+  - Scrum
+  - CI/CD
+  - Unit Testing
+  - Integration Testing
+  - Debugging
+  - Performance Optimization
+  - Release Validation
+Machine Learning:
+  - AI/ML
+  - Machine Learning
+  - Supervised Learning
+  - Unsupervised Learning
+  - Deep Learning
+  - NLP
+  - Transformers
+  - Computer Vision
+  - Reinforcement Learning
+  - Model Evaluation
+  - Model Deployment
+  - MLOps
+  - MLflow
+  - Fine-Tuning
+  - AutoML
+Production Engineering:
+  - Monitoring
+  - Logging
+  - Observability
+  - Guardrails
+  - PII Handling
+  - Access Control
+  - Quality Validation
+  - AI Output Validation
+  - Traceability
+Analytics & BI:
+  - Power BI
+  - Tableau
+Other:
+  - Technical Writing
+  - Public Speaking
+  - Mentoring
+  - Project Management
+  - UX/UI Design
+  - Product Management

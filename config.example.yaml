@@ -1,0 +1,105 @@
+# config.example.yaml — TEMPLATE. Copy to config.yaml and edit, or use the
+# dashboard Settings/Onboarding screen to generate config.yaml.
+#
+# This file contains NO personal data and NO secrets.
+
+app:
+  name: "Opportune"
+  slogan: "Right time. Right job. Right skills."
+  mode: local_first
+
+profile:
+  candidate:
+    name: ""
+    email: ""
+    linkedin: ""
+    github: ""
+  target_roles:
+    - applied ai engineer
+    - rag systems engineer
+    - ai agents engineer
+    - backend ai systems engineer
+    - forward deployed engineer
+    - llm engineer
+    - data + ai engineer
+  target_levels:
+    - new_grad
+    - entry_level
+    - junior
+    - associate
+    - early_career
+  locations:
+    - United States
+    - Remote US
+  visa_policy: none          # none | needs_sponsorship | opt_cpt | custom
+  timeline:
+    max_age_days: 7          # 1, 3, 7, 14, 30
+
+sources:
+  - name: serpapi_google_jobs
+    label: "SerpAPI Google Jobs"
+    enabled: false
+    mode: paid
+    api_key_env: SERPAPI_API_KEY
+    description: "Google Jobs via SerpApi (paid, broad coverage)"
+  - name: free_ats_scrape
+    label: "Free ATS / company pages"
+    enabled: true
+    mode: free
+    api_key_env: null
+    description: "Direct ATS/company career-page scraping (free, best-effort)"
+  - name: github_lists
+    label: "Curated GitHub job lists"
+    enabled: true
+    mode: free
+    api_key_env: null
+    description: "Curated early-career job lists with direct application links"
+  - name: jsearch_api
+    label: "JSearch API"
+    enabled: false
+    mode: paid
+    api_key_env: JSEARCH_API_KEY
+    description: "Broad job search through RapidAPI (optional paid source)"
+  - name: adzuna_api
+    label: "Adzuna API"
+    enabled: false
+    mode: paid
+    api_key_env: ADZUNA_APP_KEY
+    description: "Adzuna job search API (optional paid source)"
+  - name: builtin_scrape
+    label: "Built In"
+    enabled: false
+    mode: free
+    api_key_env: null
+    description: "Best-effort public Built In listings"
+  - name: wellfound_scrape
+    label: "Wellfound"
+    enabled: false
+    mode: free
+    api_key_env: null
+    description: "Disabled: enable only with explicit source permission; current terms restrict automated scraping"
+  - name: ycombinator_jobs
+    label: "Y Combinator jobs"
+    enabled: false
+    mode: free
+    api_key_env: null
+    description: "Best-effort public YC startup listings"
+
+apis:
+  serpapi:
+    env_key: SERPAPI_API_KEY
+    required_for: [serpapi_google_jobs]
+
+storage:
+  home: "tracker"
+  sqlite_file: dashboard.db
+
+dashboard:
+  host: 127.0.0.1
+  port: 8770
+
+scheduler:
+  direct_interval_minutes: 180  # complete ATS snapshots every 3 hours
+  board_interval_minutes: 360   # curated/board/API discovery every 6 hours
+  jitter_minutes: 10            # avoid synchronized load across installations
+  poll_seconds: 30              # foreground-daemon due check

@@ -1,0 +1,22 @@
+YOUR NAME
+City, State | you@example.com | linkedin.com/in/your-handle | github.com/your-handle
+
+SUMMARY
+Early-career AI/backend engineer interested in applied AI, RAG systems, agentic
+workflows, data platforms, and production software. Replace this template with
+your own resume text from the dashboard onboarding flow or by editing this file.
+
+SKILLS
+Python, SQL, FastAPI, APIs, Docker, GitHub Actions, testing, LLM applications,
+RAG pipelines, embeddings, vector search, evaluation, data pipelines, cloud.
+
+PROJECTS
+AI Retrieval Inspector — Built a small RAG evaluation and observability tool for
+retrieval quality, prompt iteration, and failure analysis.
+
+Multi-Agent Support Assistant — Built a local-first agent workflow that routes
+customer-support questions to retrieval, tools, and structured follow-up actions.
+
+EXPERIENCE
+Add your experience here. Keep it plain text; the matcher extracts skills and
+project evidence from this content.

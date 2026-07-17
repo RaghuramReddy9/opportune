@@ -1,0 +1,505 @@
+companies:
+- company_name: Anthropic
+  career_url: https://www.anthropic.com/careers
+  ats_type: greenhouse
+  ats_slug: anthropic
+  ats_url: https://job-boards.greenhouse.io/anthropic
+  enabled: true
+  notes: ''
+- company_name: OpenAI
+  career_url: https://openai.com/careers
+  ats_type: ashby
+  ats_slug: openai
+  ats_url: https://jobs.ashbyhq.com/openai
+  enabled: true
+  notes: Auto-discovered via direct_test_ashby
+- company_name: Perplexity
+  career_url: https://www.perplexity.ai/careers
+  ats_type: ashby
+  ats_slug: perplexity
+  ats_url: https://jobs.ashbyhq.com/perplexity
+  enabled: true
+  notes: Auto-discovered via direct_test_ashby
+- company_name: Scale AI
+  career_url: https://scale.com/careers
+  ats_type: greenhouse
+  ats_slug: scaleai
+  ats_url: https://job-boards.greenhouse.io/scaleai
+  enabled: true
+  notes: ''
+- company_name: Cohere
+  career_url: https://cohere.com/careers
+  ats_type: ashby
+  ats_slug: cohere
+  ats_url: https://jobs.ashbyhq.com/cohere
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Mistral AI
+  career_url: https://mistral.ai/careers
+  ats_type: lever
+  ats_slug: mistral
+  ats_url: https://jobs.lever.co/mistral
+  enabled: false
+  notes: 'Disabled: Auto-discovered via html_parse (verified 2026-06-17)'
+- company_name: Databricks
+  career_url: https://www.databricks.com/company/careers
+  ats_type: greenhouse
+  ats_slug: databricks
+  ats_url: https://job-boards.greenhouse.io/databricks
+  enabled: true
+  notes: ''
+- company_name: Snowflake
+  career_url: https://www.snowflake.com/careers/
+  ats_type: ashby
+  ats_slug: snowflake
+  ats_url: https://jobs.ashbyhq.com/snowflake
+  enabled: true
+  notes: Auto-discovered via direct_test_ashby
+- company_name: Hugging Face
+  career_url: https://huggingface.co/careers
+  ats_type: ashby
+  ats_slug: huggingface
+  ats_url: https://jobs.ashbyhq.com/huggingface
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Together AI
+  career_url: https://www.together.ai/careers
+  ats_type: greenhouse
+  ats_slug: togetherai
+  ats_url: https://job-boards.greenhouse.io/togetherai
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: LangChain
+  career_url: https://www.langchain.com/careers
+  ats_type: ashby
+  ats_slug: langchain
+  ats_url: https://jobs.ashbyhq.com/langchain
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Pinecone
+  career_url: https://www.pinecone.io/careers/
+  ats_type: ashby
+  ats_slug: pinecone
+  ats_url: https://jobs.ashbyhq.com/pinecone
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Weights & Biases
+  career_url: https://wandb.ai/careers
+  ats_type: ashby
+  ats_slug: weights&biases
+  ats_url: https://jobs.ashbyhq.com/weights&biases
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Replicate
+  career_url: https://replicate.com/careers
+  ats_type: ashby
+  ats_slug: replicate
+  ats_url: https://jobs.ashbyhq.com/replicate
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Fireworks AI
+  career_url: https://fireworks.ai/careers
+  ats_type: greenhouse
+  ats_slug: fireworksai
+  ats_url: https://job-boards.greenhouse.io/fireworksai
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Writer
+  career_url: https://writer.com/careers/
+  ats_type: ashby
+  ats_slug: writer
+  ats_url: https://jobs.ashbyhq.com/writer
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Glean
+  career_url: https://glean.com/careers
+  ats_type: ashby
+  ats_slug: glean
+  ats_url: https://jobs.ashbyhq.com/glean
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Harvey
+  career_url: https://www.harvey.ai/careers
+  ats_type: ashby
+  ats_slug: harvey
+  ats_url: https://jobs.ashbyhq.com/harvey
+  enabled: true
+  notes: Auto-discovered via direct_test_ashby
+- company_name: Abridge
+  career_url: https://abridge.com/careers
+  ats_type: ashby
+  ats_slug: Abridge
+  ats_url: https://jobs.ashbyhq.com/Abridge
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Notion
+  career_url: https://www.notion.so/careers
+  ats_type: ashby
+  ats_slug: notion
+  ats_url: https://jobs.ashbyhq.com/notion
+  enabled: true
+  notes: ''
+- company_name: Ramp
+  career_url: https://ramp.com/careers
+  ats_type: greenhouse
+  ats_slug: ramp
+  ats_url: https://job-boards.greenhouse.io/ramp
+  enabled: false
+  notes: 'Disabled:  (verified 2026-06-17)'
+- company_name: Stripe
+  career_url: https://stripe.com/jobs
+  ats_type: greenhouse
+  ats_slug: stripe
+  ats_url: https://job-boards.greenhouse.io/stripe
+  enabled: true
+  notes: ''
+- company_name: Brex
+  career_url: https://www.brex.com/careers
+  ats_type: greenhouse
+  ats_slug: brex
+  ats_url: https://job-boards.greenhouse.io/brex
+  enabled: true
+  notes: ''
+- company_name: Rippling
+  career_url: https://www.rippling.com/careers
+  ats_type: ashby
+  ats_slug: rippling
+  ats_url: https://jobs.ashbyhq.com/rippling
+  enabled: false
+  notes: 'Disabled: Auto-discovered via direct_test_ashby (verified 2026-06-17)'
+- company_name: Atlassian
+  career_url: https://www.atlassian.com/company/careers
+  ats_type: ashby
+  ats_slug: atlassian
+  ats_url: https://jobs.ashbyhq.com/atlassian
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: 1Password
+  career_url: https://1password.com/careers/
+  ats_type: ashby
+  ats_slug: 1password
+  ats_url: https://jobs.ashbyhq.com/1password
+  enabled: true
+  notes: ''
+- company_name: Datadog
+  career_url: https://www.datadoghq.com/careers/
+  ats_type: greenhouse
+  ats_slug: datadog
+  ats_url: https://job-boards.greenhouse.io/datadog
+  enabled: true
+  notes: ''
+- company_name: MongoDB
+  career_url: https://www.mongodb.com/careers
+  ats_type: greenhouse
+  ats_slug: mongodb
+  ats_url: https://job-boards.greenhouse.io/mongodb
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Vercel
+  career_url: https://vercel.com/careers
+  ats_type: greenhouse
+  ats_slug: vercel
+  ats_url: https://job-boards.greenhouse.io/vercel
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Replit
+  career_url: https://replit.com/careers
+  ats_type: ashby
+  ats_slug: replit
+  ats_url: https://jobs.ashbyhq.com/replit
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Canva
+  career_url: https://www.canva.com/careers/
+  ats_type: ashby
+  ats_slug: canva
+  ats_url: https://jobs.ashbyhq.com/canva
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Figma
+  career_url: https://www.figma.com/careers/
+  ats_type: greenhouse
+  ats_slug: figma
+  ats_url: https://job-boards.greenhouse.io/figma
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Airtable
+  career_url: https://airtable.com/careers
+  ats_type: greenhouse
+  ats_slug: airtable
+  ats_url: https://job-boards.greenhouse.io/airtable
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Linear
+  career_url: https://linear.app/careers
+  ats_type: ashby
+  ats_slug: Linear
+  ats_url: https://jobs.ashbyhq.com/Linear
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Retool
+  career_url: https://retool.com/careers
+  ats_type: ashby
+  ats_slug: retool
+  ats_url: https://jobs.ashbyhq.com/retool
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Microsoft
+  career_url: https://careers.microsoft.com/students/
+  ats_type: ashby
+  ats_slug: microsoft
+  ats_url: https://jobs.ashbyhq.com/microsoft
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Google
+  career_url: https://careers.google.com/jobs/
+  ats_type: ashby
+  ats_slug: google
+  ats_url: https://jobs.ashbyhq.com/google
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Amazon
+  career_url: https://www.amazon.jobs/en/search
+  ats_type: ashby
+  ats_slug: amazon
+  ats_url: https://jobs.ashbyhq.com/amazon
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Meta
+  career_url: https://www.metacareers.com/
+  ats_type: ashby
+  ats_slug: meta
+  ats_url: https://jobs.ashbyhq.com/meta
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Apple
+  career_url: https://jobs.apple.com/en-us/search
+  ats_type: ashby
+  ats_slug: apple
+  ats_url: https://jobs.ashbyhq.com/apple
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: NVIDIA
+  career_url: https://www.nvidia.com/en-us/about-nvidia/careers/
+  ats_type: ashby
+  ats_slug: nvidia
+  ats_url: https://jobs.ashbyhq.com/nvidia
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Adobe
+  career_url: https://careers.adobe.com/us/en/
+  ats_type: ashby
+  ats_slug: adobe
+  ats_url: https://jobs.ashbyhq.com/adobe
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Salesforce
+  career_url: https://careers.salesforce.com/en/
+  ats_type: ashby
+  ats_slug: salesforce
+  ats_url: https://jobs.ashbyhq.com/salesforce
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: ServiceNow
+  career_url: https://careers.servicenow.com/
+  ats_type: ashby
+  ats_slug: servicenow
+  ats_url: https://jobs.ashbyhq.com/servicenow
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: IBM
+  career_url: https://www.ibm.com/careers/
+  ats_type: ashby
+  ats_slug: ibm
+  ats_url: https://jobs.ashbyhq.com/ibm
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Oracle
+  career_url: https://www.oracle.com/careers/
+  ats_type: ashby
+  ats_slug: oracle
+  ats_url: https://jobs.ashbyhq.com/oracle
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Capital One
+  career_url: https://www.capitalonecareers.com/
+  ats_type: ashby
+  ats_slug: capitalone
+  ats_url: https://jobs.ashbyhq.com/capitalone
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: JPMorgan Chase
+  career_url: https://careers.jpmorgan.com/global/en/students
+  ats_type: ashby
+  ats_slug: jpmorganchase
+  ats_url: https://jobs.ashbyhq.com/jpmorganchase
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Bloomberg
+  career_url: https://careers.bloomberg.com/job/search
+  ats_type: ashby
+  ats_slug: bloomberg
+  ats_url: https://jobs.ashbyhq.com/bloomberg
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: DoorDash
+  career_url: https://careers.doordash.com/
+  ats_type: greenhouse
+  ats_slug: doordash
+  ats_url: https://job-boards.greenhouse.io/doordash
+  enabled: false
+  notes: 'Disabled:  (verified 2026-06-17)'
+- company_name: Uber
+  career_url: https://www.uber.com/us/en/careers/
+  ats_type: ashby
+  ats_slug: uber
+  ats_url: https://jobs.ashbyhq.com/uber
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Airbnb
+  career_url: https://careers.airbnb.com/
+  ats_type: greenhouse
+  ats_slug: airbnb
+  ats_url: https://job-boards.greenhouse.io/airbnb
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Rocket Lawyer
+  career_url: https://www.rocketlawyer.com/careers
+  ats_type: greenhouse
+  ats_slug: rocketlawyer
+  ats_url: https://job-boards.greenhouse.io/rocketlawyer
+  enabled: true
+  notes: ''
+- company_name: Great Question
+  career_url: https://greatquestion.co/careers
+  ats_type: ashby
+  ats_slug: greatquestion
+  ats_url: https://jobs.ashbyhq.com/greatquestion
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Frontline Education
+  career_url: https://www.frontlineeducation.com/careers
+  ats_type: ashby
+  ats_slug: frontlineeducation
+  ats_url: https://jobs.ashbyhq.com/frontlineeducation
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Duolingo
+  career_url: https://careers.duolingo.com/
+  ats_type: greenhouse
+  ats_slug: duolingo
+  ats_url: https://job-boards.greenhouse.io/duolingo
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Coursera
+  career_url: https://about.coursera.org/careers/
+  ats_type: greenhouse
+  ats_slug: coursera
+  ats_url: https://job-boards.greenhouse.io/coursera
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Handshake
+  career_url: https://joinhandshake.com/careers/
+  ats_type: ashby
+  ats_slug: handshake
+  ats_url: https://jobs.ashbyhq.com/handshake
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Modern Treasury
+  career_url: https://www.moderntreasury.com/careers
+  ats_type: ashby
+  ats_slug: moderntreasury
+  ats_url: https://jobs.ashbyhq.com/moderntreasury
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Plaid
+  career_url: https://plaid.com/careers/
+  ats_type: ashby
+  ats_slug: plaid
+  ats_url: https://jobs.ashbyhq.com/plaid
+  enabled: true
+  notes: Auto-discovered via direct_test_ashby
+- company_name: Robinhood
+  career_url: https://careers.robinhood.com/
+  ats_type: greenhouse
+  ats_slug: robinhood
+  ats_url: https://job-boards.greenhouse.io/robinhood
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Coinbase
+  career_url: https://www.coinbase.com/careers
+  ats_type: greenhouse
+  ats_slug: coinbase
+  ats_url: https://job-boards.greenhouse.io/coinbase
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Chime
+  career_url: https://www.chime.com/careers/
+  ats_type: greenhouse
+  ats_slug: chime
+  ats_url: https://job-boards.greenhouse.io/chime
+  enabled: true
+  notes: Auto-discovered via html_parse
+- company_name: Oscar Health
+  career_url: https://www.hioscar.com/careers
+  ats_type: ashby
+  ats_slug: oscarhealth
+  ats_url: https://jobs.ashbyhq.com/oscarhealth
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Flatiron Health
+  career_url: https://flatiron.com/careers
+  ats_type: greenhouse
+  ats_slug: flatironhealth
+  ats_url: https://job-boards.greenhouse.io/flatironhealth
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Tempus
+  career_url: https://tempus.com/careers
+  ats_type: ashby
+  ats_slug: tempus
+  ats_url: https://jobs.ashbyhq.com/tempus
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: Suki
+  career_url: https://www.suki.ai/careers
+  ats_type: greenhouse
+  ats_slug: suki
+  ats_url: https://job-boards.greenhouse.io/suki
+  enabled: true
+  notes: Auto-discovered via direct_test_greenhouse
+- company_name: Scribenote
+  career_url: https://www.scribenote.com/careers
+  ats_type: ashby
+  ats_slug: scribenote
+  ats_url: https://jobs.ashbyhq.com/scribenote
+  enabled: false
+  notes: 'Disabled: moved off Ashby (verified 2026-06-17)'
+- company_name: NetSpeek
+  career_url: https://apply.workable.com/netspeek/
+  ats_type: workable
+  ats_slug: netspeek
+  ats_url: https://apply.workable.com/netspeek/
+  enabled: true
+  notes: Verified public Workable feed; includes U.S. early-career applied-AI roles
+- company_name: OPPO US Research Center
+  career_url: https://apply.workable.com/innopeaktech/
+  ats_type: workable
+  ats_slug: innopeaktech
+  ats_url: https://apply.workable.com/innopeaktech/
+  enabled: true
+  notes: Verified public Workable feed; U.S. AI and agent engineering roles
+- company_name: EQL Tech
+  career_url: https://apply.workable.com/eqltech/
+  ats_type: workable
+  ats_slug: eqltech
+  ats_url: https://apply.workable.com/eqltech/
+  enabled: true
+  notes: Verified public Workable feed; U.S. AI roles with explicit visa signals
+source_health:
+  last_updated: '2026-06-17'
+  total_companies: 0
+  known_ats: 0
+  unknown_ats: 0
+  apify_fallback_runs_today: 2
+  apify_fallback_runs_max: 3

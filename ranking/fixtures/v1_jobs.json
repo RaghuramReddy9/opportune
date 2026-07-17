@@ -1,0 +1,98 @@
+[
+  {
+    "id": "strong_rag_new_grad", "expected": "apply_now",
+    "company": "Acme AI", "title": "New Grad Applied AI Engineer - RAG Agents",
+    "location": "Remote, United States", "source": "greenhouse", "freshness": "New (0-24h)",
+    "description": "Build production LLM applications, RAG pipelines, LangGraph agents, FastAPI services, vector retrieval, evaluations, observability, Docker, and CI/CD. Recent graduates and candidates with 0-2 years are welcome. OPT candidates are welcome and visa sponsorship is available."
+  },
+  {
+    "id": "backend_ai_engineer_i", "expected": "apply_now",
+    "company": "Product AI", "title": "Software Engineer I, Backend AI Systems",
+    "location": "New York, NY", "source": "ashby", "freshness": "New (0-24h)",
+    "description": "Ship Python and FastAPI services for LLM inference, retrieval augmented generation, embeddings, agent workflows, prompt evaluation, monitoring, Docker, and AWS. This early career role is open to 0-2 years of experience. F-1 OPT sponsorship is supported."
+  },
+  {
+    "id": "associate_genai_solutions", "expected": "apply_now",
+    "company": "Helpful Systems", "title": "Associate Generative AI Solutions Engineer",
+    "location": "Boston, MA", "source": "workable", "freshness": "Recent (24-48h)",
+    "description": "Develop customer-facing generative AI applications using LLM APIs, RAG, LangChain, vector databases, Python, FastAPI, evaluation, and cloud deployment. Associate-level and recent graduate applicants are encouraged. STEM OPT and future visa sponsorship are supported."
+  },
+  {
+    "id": "junior_agent_platform", "expected": "apply_now",
+    "company": "Agent Platform", "title": "Junior AI Agent Platform Engineer",
+    "location": "San Francisco, CA", "source": "lever", "freshness": "New (0-24h)",
+    "description": "Build reliable multi-agent and tool-calling workflows with Python, LangGraph, RAG, FastAPI, PostgreSQL, Docker, tracing, guardrails, and LLM evaluation. Junior candidates with up to two years are welcome. OPT candidates are welcome and visa sponsorship is provided."
+  },
+  {
+    "id": "strong_match_unknown_age", "expected": "watch",
+    "company": "Freshness Unknown", "title": "Entry Level Applied AI Engineer",
+    "location": "Remote, United States", "source": "greenhouse", "freshness": "Unknown",
+    "description": "Build production RAG, LLM agent, FastAPI, Python, vector search, evaluation, observability, and Docker systems. Entry-level candidates with 0-2 years are welcome and OPT sponsorship is available. The employer feed does not expose a publication date."
+  },
+  {
+    "id": "moderate_backend_ai", "expected": "watch",
+    "company": "Moderate Fit", "title": "Junior Backend Engineer, AI Integrations",
+    "location": "Austin, TX", "source": "workable", "freshness": "New (0-24h)",
+    "description": "Develop Python REST APIs, integrations, Docker services, and cloud automation. The team also connects to LLM APIs and embeddings for internal tools. Junior applicants are welcome. Work authorization details will be discussed with candidates."
+  },
+  {
+    "id": "unknown_authorization", "expected": "watch",
+    "company": "Auth Unknown", "title": "Engineer I, Generative AI Applications",
+    "location": "Chicago, IL", "source": "ashby", "freshness": "New (0-24h)",
+    "description": "Build LLM applications, RAG services, prompt evaluations, Python APIs, FastAPI, vector search, monitoring, and Docker deployments. The position is Engineer I and designed for candidates with 0-2 years of experience."
+  },
+  {
+    "id": "thin_board_description", "expected": "watch",
+    "company": "Board Discovery", "title": "New Grad AI Engineer",
+    "location": "United States", "source": "api_jsearch", "freshness": "New (0-24h)",
+    "description": "New grad AI role using Python, LLMs, RAG, agents, and FastAPI. OPT welcome."
+  },
+  {
+    "id": "senior_ai", "expected": "skip",
+    "company": "Senior Systems", "title": "Senior Applied AI Engineer",
+    "location": "Remote, United States", "source": "greenhouse", "freshness": "New (0-24h)",
+    "description": "Lead production LLM, RAG, agent, Python, FastAPI, vector database, evaluation, and MLOps systems. Requires 7+ years of professional engineering experience. Visa sponsorship is available."
+  },
+  {
+    "id": "clearance_required", "expected": "skip",
+    "company": "Defense AI", "title": "Entry Level AI Engineer",
+    "location": "Arlington, VA", "source": "workable", "freshness": "New (0-24h)",
+    "description": "Build Python, RAG, LLM, and FastAPI applications for mission systems. Applicants must be U.S. citizens and have the ability to obtain and maintain a security clearance. Early-career candidates are welcome."
+  },
+  {
+    "id": "experience_over_two", "expected": "skip",
+    "company": "Experienced AI", "title": "Applied AI Engineer",
+    "location": "Seattle, WA", "source": "ashby", "freshness": "New (0-24h)",
+    "description": "Build production LLM, RAG, Python, agent, evaluation, and vector retrieval systems. Requires at least 4 years of professional machine learning engineering experience. Sponsorship is available."
+  },
+  {
+    "id": "phd_research_scientist", "expected": "skip",
+    "company": "Research Lab", "title": "Research Scientist, Foundation Models (PhD)",
+    "location": "Palo Alto, CA", "source": "workable", "freshness": "New (0-24h)",
+    "description": "Conduct novel foundation model research and publish at top conferences. A completed PhD and extensive publication record are required. Work includes model training, PyTorch, and experimental research."
+  },
+  {
+    "id": "plain_data_analyst", "expected": "skip",
+    "company": "Reporting Corp", "title": "Junior Data Analyst",
+    "location": "New York, NY", "source": "greenhouse", "freshness": "New (0-24h)",
+    "description": "Create Tableau dashboards, Excel reports, SQL queries, weekly metrics, stakeholder presentations, and business intelligence documentation. This is a junior role and does not involve production AI engineering."
+  },
+  {
+    "id": "frontend_no_ai", "expected": "skip",
+    "company": "Web Shop", "title": "Entry Level Frontend Engineer",
+    "location": "Remote, United States", "source": "lever", "freshness": "New (0-24h)",
+    "description": "Build accessible web interfaces with React, TypeScript, CSS, design systems, browser testing, and frontend performance monitoring. This entry-level role works with product designers and web platform engineers."
+  },
+  {
+    "id": "non_us_role", "expected": "skip",
+    "company": "Global AI", "title": "Junior RAG Engineer",
+    "location": "London, United Kingdom", "source": "workable", "freshness": "New (0-24h)",
+    "description": "Build Python, LLM, RAG, LangChain, vector retrieval, FastAPI, evaluation, and Docker services. This junior position is based in London and does not offer relocation to the United States."
+  },
+  {
+    "id": "current_student_internship", "expected": "skip",
+    "company": "Student AI", "title": "AI Engineering Intern",
+    "location": "San Jose, CA", "source": "greenhouse", "freshness": "New (0-24h)",
+    "description": "Work on Python, LLM, RAG, and agent prototypes. Applicants must be currently enrolled in a degree program and must return to school after the internship. OPT sponsorship is available."
+  }
+]

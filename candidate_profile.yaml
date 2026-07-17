@@ -1,0 +1,20 @@
+candidate:
+  education_status: unknown
+  target_levels:
+    - new_grad
+    - entry_level
+    - junior
+    - associate
+    - engineer_i
+    - zero_to_two_years
+    - early_career
+  secondary_levels: []
+  internship_policy: explicit_graduate_eligibility_required
+  visa_status:
+    needs_sponsorship_future: false
+    opt_eligible: false
+  location_policy:
+    country: US
+    remote_us_ok: true
+  timeline:
+    max_age_days: 7

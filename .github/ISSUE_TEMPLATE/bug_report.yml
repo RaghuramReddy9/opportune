@@ -1,0 +1,88 @@
+name: Bug report
+description: Report reproducible behavior that is broken
+title: "[Bug]: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Opportune. Remove API keys, resume text, personal job-search data, and private paths before submitting.
+
+  - type: input
+    id: version
+    attributes:
+      label: Opportune version
+      description: Run `uv run opp --version` or provide the commit.
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Onboarding or profile
+        - Dashboard or frontend
+        - Discovery or sources
+        - Ranking or safety
+        - Database or local data
+        - CLI or scheduler
+        - Packaging or installation
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and any safe error text.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic data and list the exact commands or clicks.
+      placeholder: |
+        1. Start Opportune with ...
+        2. Open ...
+        3. Click ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python version, browser, and installation method.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs or screenshots
+      description: Optional. Remove tokens, resume content, email addresses, phone numbers, and private paths.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing Issues for this problem.
+          required: true
+        - label: I removed secrets and personal data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

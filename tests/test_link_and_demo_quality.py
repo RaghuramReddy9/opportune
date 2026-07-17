@@ -1,0 +1,118 @@
+"""Tests for link liveness verification, demo separation, and aggregator demotion."""
+from __future__ import annotations
+
+import tempfile
+import unittest
+from email.message import Message
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError
+
+from dashboard import db
+
+
+def _make_job(**overrides) -> dict:
+    base = {
+        "company": "TestCo",
+        "title": "AI Engineer",
+        "location": "Remote US",
+        "apply_url": "https://example.com/job/1",
+        "source": "greenhouse",
+        "ats_type": "greenhouse",
+        "resume_match_score": 80,
+        "freshness": "New (0-24h)",
+        "action_tag": "watch",
+        "matched_keywords": ["python"],
+        "target_role_families": ["applied_ai"],
+    }
+    base.update(overrides)
+    return base
+
+
+class LinkCheckTests(unittest.TestCase):
+    def test_private_network_url_is_rejected_without_request(self):
+        from core.link_check import verify_job_link
+
+        with patch("core.link_check.urllib.request.urlopen") as request:
+            status = verify_job_link("http://127.0.0.1:8000/admin")
+
+        self.assertFalse(status["ok"])
+        self.assertEqual(status["link_status"], "unsafe")
+        request.assert_not_called()
+
+    def test_placeholder_url_is_flagged_dead(self):
+        from core.link_check import verify_job_link
+        status = verify_job_link("https://example.com/jobs/rag-engineer")
+        self.assertFalse(status["ok"])
+        self.assertEqual(status["link_status"], "placeholder")
+
+    @patch("core.link_check.urllib.request.urlopen")
+    def test_reachable_url_is_ok(self, mock_urlopen):
+        from core.link_check import verify_job_link
+
+        response = MagicMock()
+        response.status = 200
+        response.geturl.return_value = "https://job-boards.greenhouse.io/scaleai/jobs/4625345005"
+        response.__enter__.return_value = response
+        mock_urlopen.return_value = response
+        status = verify_job_link("https://job-boards.greenhouse.io/scaleai/jobs/4625345005")
+        self.assertTrue(status["ok"])
+        self.assertEqual(status["link_status"], "ok")
+        self.assertIn("checked_at", status)
+
+    @patch("core.link_check.urllib.request.urlopen")
+    def test_head_failure_falls_back_to_get_and_marks_404_dead(self, mock_urlopen):
+        from core.link_check import verify_job_link
+
+        error = HTTPError("https://jobs.example.net/closed", 404, "Not Found", Message(), None)
+        mock_urlopen.side_effect = [error, error]
+        status = verify_job_link("https://jobs.example.net/closed")
+        self.assertFalse(status["ok"])
+        self.assertEqual(status["link_status"], "dead")
+        self.assertEqual(mock_urlopen.call_count, 2)
+
+
+class DemoSeparationTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.tmp.name) / "dashboard.db"
+        db.set_db_path(self.db_path)
+        db.init_db(self.db_path)
+
+    def tearDown(self):
+        db.set_db_path(None)
+        self.tmp.cleanup()
+
+    def test_sample_data_is_flagged_demo_and_excluded_from_default_model(self):
+        with db.connect(self.db_path) as conn:
+            db.upsert_scraped_job(conn, _make_job(source="sample_data", apply_url="https://example.com/x"))
+            db.upsert_scraped_job(conn, _make_job(company="RealCo", source="greenhouse"))
+            model = db.get_dashboard_model(conn)
+        all_jobs = [j for b in model["buckets"].values() for j in b]
+        # Default model must not surface demo rows as real results.
+        self.assertFalse(any(j.get("is_demo") for j in all_jobs))
+        # The real (non-demo) job must still be present.
+        self.assertTrue(any(j["company"] == "RealCo" for j in all_jobs))
+
+    def test_demo_count_exposed_when_requested(self):
+        with db.connect(self.db_path) as conn:
+            db.upsert_scraped_job(conn, _make_job(source="sample_data", apply_url="https://example.com/x"))
+            db.upsert_scraped_job(conn, _make_job(company="RealCo", source="greenhouse"))
+            model = db.get_dashboard_model(conn, include_demo=True)
+        demo_jobs = [j for b in model["buckets"].values() for j in b if j.get("is_demo")]
+        self.assertEqual(len(demo_jobs), 1)
+        # Demo cards render, but dashboard totals only count real scraped jobs.
+        self.assertEqual(model["stats"]["total"], 1)
+
+
+class AggregatorDemotionTests(unittest.TestCase):
+    def test_aggregator_source_lowers_apply_window_score(self):
+        from ranking.apply_window import score_apply_window
+        normal = score_apply_window(_make_job(source="greenhouse", ats_type="greenhouse", apply_url="https://greenhouse.io/x"))
+        agg = score_apply_window(_make_job(source="api_serpapi", ats_type="serpapi", apply_url="https://lensa.com/job/1"))
+        self.assertLess(agg["apply_window_score"], normal["apply_window_score"])
+        self.assertIn("aggregator", " ".join(agg["apply_window_reasons"]).lower())
+
+
+if __name__ == "__main__":
+    unittest.main()

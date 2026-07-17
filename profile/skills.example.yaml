@@ -1,0 +1,19 @@
+skills:
+  - name: python
+    level: 4
+  - name: sql
+    level: 4
+  - name: fastapi
+    level: 3
+  - name: docker
+    level: 3
+  - name: llm-powered applications
+    level: 3
+  - name: rag pipelines
+    level: 3
+  - name: embeddings
+    level: 3
+  - name: vector search
+    level: 3
+  - name: testing
+    level: 3

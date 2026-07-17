@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 72" role="img" aria-labelledby="title desc">
+  <title id="title">Opportune</title>
+  <desc id="desc">An open circular path with a forward arrow, beside the Opportune name and tagline.</desc>
+  <g transform="translate(4 4)">
+    <rect width="64" height="64" rx="19" fill="#123f32"/>
+    <path d="M43.5 20.5A17 17 0 1 0 47 43.5" fill="none" stroke="#cbf5df" stroke-width="7" stroke-linecap="round"/>
+    <path d="M39.5 17.5H51V29" fill="none" stroke="#fff3bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M50 19 38.5 30.5" fill="none" stroke="#fff3bd" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="84" y="36" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="31" font-weight="760" letter-spacing="-1.2" fill="#151918">Opportune</text>
+  <text x="85" y="55" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.65" fill="#68716d">RIGHT TIME · RIGHT JOB · RIGHT SKILLS</text>
+</svg>

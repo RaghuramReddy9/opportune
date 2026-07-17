@@ -1,0 +1,60 @@
+name: Job source request
+description: Propose a public job source or adapter
+title: "[Source]: "
+labels: [source-request, needs-triage]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source name and public URL
+      placeholder: Example Careers — https://example.com/careers
+    validations:
+      required: true
+
+  - type: dropdown
+    id: access
+    attributes:
+      label: Access method
+      options:
+        - Public ATS endpoint
+        - Public API
+        - Public RSS or feed
+        - Official paid API
+        - Apify actor
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Access and terms evidence
+      description: Link to API docs, robots.txt, terms, rate limits, or source documentation. Do not propose bypasses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: coverage
+    attributes:
+      label: Expected value
+      description: Which roles, locations, or companies would this add?
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample
+    attributes:
+      label: Safe sample response or fields
+      description: Optional. Use public, redacted data and never include credentials.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Source checks
+      options:
+        - label: The request does not require login bypass, CAPTCHA evasion, or prohibited scraping.
+          required: true
+        - label: I identified whether the source is free, paid, or key-gated.
+          required: true
+        - label: I searched existing adapters and Issues.
+          required: true

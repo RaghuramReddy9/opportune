@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Opportune</title>
+<style>
+  :root { --bg:#0e1116; --card:#161b22; --line:#21262d; --fg:#e6edf3; --muted:#8b949e; --accent:#2f81f7; --green:#2ea043; --orange:#d29922; --red:#f85149; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:16px; position:sticky; top:0; background:var(--bg); z-index:10; }
+  header h1 { margin:0; font-size:16px; font-weight:600; }
+  header .stats { display:flex; gap:10px; margin-left:auto; flex-wrap:wrap; }
+  header .stat { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:4px 10px; font-size:12px; color:var(--muted); }
+  header .stat b { color:var(--fg); margin-left:4px; }
+  header button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; }
+  header button.secondary { background:var(--card); border:1px solid var(--line); color:var(--fg); }
+  header button:disabled { opacity:.5; cursor:default; }
+  main { padding:18px 20px; }
+  .controls { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .controls label { color:var(--muted); font-size:12px; }
+  .controls select { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+  .section { margin-bottom:22px; }
+  .section h2 { font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:0 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  .section h2 .count { color:var(--accent); margin-left:8px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
+  .card .row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .card .company { font-weight:600; font-size:14px; }
+  .card .score { font-variant-numeric:tabular-nums; font-size:13px; padding:2px 8px; border-radius:10px; background:#1f2937; }
+  .card .score.high { background:#0d2818; color:var(--green); }
+  .card .score.mid { background:#2a1f00; color:var(--orange); }
+  .card .score.low { background:#3d1114; color:var(--red); }
+  .card .title { color:var(--fg); margin-top:4px; }
+  .card .meta { color:var(--muted); font-size:12px; margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; }
+  .card .why { margin-top:8px; font-size:12px; color:var(--muted); line-height:1.4; }
+  .card .actions { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
+  .card .actions button { border:1px solid var(--line); background:#0d1117; color:var(--fg); border-radius:6px; padding:5px 9px; font-size:12px; cursor:pointer; }
+  .card .actions button:hover { border-color:var(--accent); }
+  .card .actions button.applied { background:var(--green); color:#fff; border-color:var(--green); }
+  .card .actions select { background:#0d1117; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:4px 6px; font-size:12px; }
+  .card .note { width:100%; margin-top:8px; background:#0d1117; border:1px solid var(--line); border-radius:6px; padding:6px 8px; color:var(--fg); font-size:12px; }
+  .card.applied { border-color:var(--green); }
+  .empty { color:var(--muted); padding:18px; text-align:center; border:1px dashed var(--line); border-radius:8px; }
+  .tag { font-size:10px; text-transform:uppercase; letter-spacing:.04em; padding:1px 6px; border-radius:4px; background:#30363d; color:var(--muted); }
+  #toast { position:fixed; bottom:20px; right:20px; background:var(--card); border:1px solid var(--accent); border-radius:6px; padding:10px 14px; font-size:13px; display:none; z-index:100; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Opportune</h1>
+  <div class="stats" id="stats"></div>
+  <button class="secondary" id="refreshBtn">Refresh</button>
+  <button id="scrapeBtn">Run Scraper</button>
+</header>
+<main>
+  <div class="controls">
+    <label>Status:</label>
+    <select id="statusFilter"><option value="">All</option></select>
+    <label>Bucket:</label>
+    <select id="bucketFilter"><option value="">All</option></select>
+  </div>
+  <div id="sections"></div>
+</main>
+<div id="toast"></div>
+<script>
+const STATUSES = ['discovered','watch','applied','confirmed','interview','assessment','offer','rejected','closed'];
+const BUCKETS = ['apply_now','watch','known_match','active_pipeline','closed'];
+let model = {stats:{}, buckets:{}};
+
+function toast(msg, ms=2200) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.style.display='block';
+  clearTimeout(t._timer); t._timer = setTimeout(()=> t.style.display='none', ms);
+}
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+  return r.json();
+}
+
+function scoreClass(score) { return score >= 75 ? 'high' : score >= 45 ? 'mid' : 'low'; }
+
+function cardHtml(job) {
+  const cls = job.status === 'applied' || job.status === 'confirmed' ? 'applied' : '';
+  const keywords = (job.matched_keywords||[]).slice(0,5).map(k=>`<span class="tag">${k}</span>`).join(' ');
+  const statusSel = STATUSES.map(s=>`<option value="${s}" ${s===job.status?'selected':''}>${s}</option>`).join('');
+  return `<div class="card ${cls}" data-uid="${job.job_uid}">
+    <div class="row">
+      <div class="company">${esc(job.company)}</div>
+      <div class="score ${scoreClass(job.resume_match_score)}">${job.resume_match_score}</div>
+    </div>
+    <div class="title">${esc(job.title)}</div>
+    <div class="meta">
+      <span>${esc(job.location||'—')}</span>
+      <span>${esc(job.source||'')}</span>
+      <span>${esc(job.freshness||'')}</span>
+    </div>
+    ${job.why_matches?`<div class="why">${esc(job.why_matches)}</div>`:''}
+    <div class="actions">
+      <button data-act="applied" ${job.status==='applied'||job.status==='confirmed'?'class="applied"':''}>I Applied</button>
+      <button data-act="watch">Watch</button>
+      <select data-act="status">${statusSel}</select>
+    </div>
+    <input class="note" data-act="note" placeholder="Note…" value="${esc(job.note||'')}" />
+    ${keywords?`<div class="meta">${keywords}</div>`:''}
+  </div>`;
+}
+
+// XSS: all dynamic values are escaped via esc() before insertion. Data comes
+// from our own local scraper DB (not user/Internet input). Local-only app.
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);}
+
+function render() {
+  const sf = document.getElementById('statusFilter').value;
+  const bf = document.getElementById('bucketFilter').value;
+  document.getElementById('stats').innerHTML =
+    Object.entries(model.stats).map(([k,v])=>`<div class="stat">${k}<b>${v}</b></div>`).join('');
+
+  const sectionsEl = document.getElementById('sections');
+  let html = '';
+  for (const [bucket, jobs] of Object.entries(model.buckets)) {
+    if (bf && bf !== bucket) continue;
+    const filtered = jobs.filter(j => !sf || j.status === sf);
+    if (!filtered.length) continue;
+    html += `<div class="section"><h2>${bucket.replace(/_/g,' ')}<span class="count">${filtered.length}</span></h2>`;
+    html += `<div class="grid">${filtered.map(cardHtml).join('')}</div></div>`;
+  }
+  if (!html) html = `<div class="empty">No jobs match the current filters.</div>`;
+  sectionsEl.innerHTML = html;
+  wireCards();
+}
+
+function wireCards() {
+  document.querySelectorAll('.card').forEach(card => {
+    const uid = card.dataset.uid;
+    card.querySelectorAll('[data-act]').forEach(el => {
+      if (el.dataset.act === 'applied') {
+        el.onclick = async () => { await setStatus(uid, 'applied'); };
+      } else if (el.dataset.act === 'watch') {
+        el.onclick = async () => { await setStatus(uid, 'watch'); };
+      } else if (el.dataset.act === 'status') {
+        el.onchange = async (e) => { await setStatus(uid, e.target.value); };
+      } else if (el.dataset.act === 'note') {
+        el.onchange = async (e) => { await setNote(uid, e.target.value); };
+      }
+    });
+  });
+}
+
+async function setStatus(uid, status) {
+  try {
+    await api(`/api/jobs/${uid}/status`, {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({status})});
+    toast(`Marked ${status}`);
+    await load();
+  } catch(e) { toast('Error: '+e.message); }
+}
+
+async function setNote(uid, note) {
+  try {
+    await api(`/api/jobs/${uid}/note`, {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({note})});
+    toast('Note saved');
+    await load();
+  } catch(e) { toast('Error: '+e.message); }
+}
+
+async function load() {
+  try { model = await api('/api/dashboard'); render(); }
+  catch(e) { toast('Load error: '+e.message); }
+}
+
+document.getElementById('refreshBtn').onclick = load;
+document.getElementById('scrapeBtn').onclick = async () => {
+  const btn = document.getElementById('scrapeBtn'); btn.disabled=true; btn.textContent='Scraping…';
+  try {
+    const r = await api('/api/scrape?dry_run=true', {method:'POST'});
+    toast(`Scraped ${r.raw_count} raw jobs`);
+    await load();
+  } catch(e) { toast('Scrape error: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='Run Scraper'; }
+};
+document.getElementById('statusFilter').onchange = render;
+document.getElementById('bucketFilter').onchange = render;
+
+// Populate filter selects once.
+document.getElementById('statusFilter').innerHTML = '<option value="">All</option>' + STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('');
+document.getElementById('bucketFilter').innerHTML = '<option value="">All</option>' + BUCKETS.map(b=>`<option value="${b}">${b.replace(/_/g,' ')}</option>`).join('');
+
+load();
+setInterval(load, 30000);  // auto-refresh every 30s
+</script>
+</body>
+</html>

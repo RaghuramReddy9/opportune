@@ -1,0 +1,72 @@
+# Job Hunt Automation — Environment & Secrets
+.env
+*.log
+__pycache__/
+*.pyc
+.venv/
+
+# Data & backups (contain personal job search data)
+tracker/jobs.db
+tracker/jobs.db-wal
+tracker/jobs.db-shm
+tracker/evidence.db
+tracker/evidence.db-wal
+tracker/evidence.db-shm
+tracker/source_health.json
+tracker/applications.csv
+
+# Generated local dashboard (contains personal job search data)
+dashboard/job_hunt_command_center.html
+dashboard/ready_jobs.json
+dashboard.db
+tracker/dashboard.db
+tracker/dashboard.db-wal
+tracker/dashboard.db-shm
+tracker/scheduler-state.json
+tracker/scheduler.lock
+
+# Reports (generated daily — don't commit personal job search reports)
+reports/*.md
+reports/*.csv
+reports/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary scratch files in project root
+/test_*.py
+/debug_*.py
+/check_*.py
+/find_*.py
+/quick_*.py
+/inspect_*.py
+
+# Real test suite
+!tests/test_*.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Frontend build deps (installed, not source)
+frontend/node_modules/
+
+# Hermes/runtime project continuity (local, not public source)
+.hermes/
+.memory/
+/STATE.md
+/TASKS.md
+
+# Local user config (ships as config.example.yaml only)
+config.yaml
+tracker/resume/
+tracker/profile/
+tracker/onboarding/
+tracker/backups/
+exports/
+sample-data/generated/
+.release/
+*.egg-info/

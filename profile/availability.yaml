@@ -1,0 +1,5 @@
+# Optional local availability window used by temporal scoring.
+# Copy to tracker/profile/availability.yaml and edit for your schedule.
+start: "09:00:00"
+end: "17:00:00"
+timezone: "local"
