@@ -35,8 +35,7 @@ Evidence classes used below:
 | Wheel and sdist | PASS | Verified | both rebuilt from the current tree |
 | Wheel/sdist package privacy | PASS | Verified | no `candidate_profile.yaml`, `resume.txt`, or `resume_profile.md` in either archive |
 | Installed wheel smoke | PASS | Verified | isolated venv outside checkout with `PYTHONPATH` removed; `opp`, `opportune`, `run --no-open`, readiness, health, HTML, JS, CSS, favicon |
-| Wheel SHA-256 | PASS | Verified | `11d45b6bd12256d35abde833a434a73d541dd7a94a95134d72f393221945286c` |
-| Sdist SHA-256 | PASS | Verified | `469ea52356761b40591981fd58d67d20f4d07c92225098b62b6b5bd07e2e64a6` |
+| Artifact checksums | PASS | Verified | generated for every local/native candidate build and retained with that build's artifacts; no source-controlled hash is labeled as a release checksum |
 
 These checks are local evidence only. Checksums change whenever the tree is rebuilt and are not release checksums until a commit is frozen and maintainer-approved.
 
