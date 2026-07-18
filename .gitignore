@@ -13,6 +13,7 @@ tracker/evidence.db
 tracker/evidence.db-wal
 tracker/evidence.db-shm
 tracker/source_health.json
+tracker/source-quality.json
 tracker/applications.csv
 
 # Generated local dashboard (contains personal job search data)
