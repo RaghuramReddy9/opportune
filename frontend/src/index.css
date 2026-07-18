@@ -241,6 +241,11 @@ body { min-width: 0; background: var(--paper); }
 .rail-console { display: grid; gap: 5px; margin-top: 22px; padding: 11px; border-radius: 12px; color: #b9ead7; background: #16211c; font-family: var(--font-mono); font-size: 9px; line-height: 1.45; }
 
 .product-workspace { min-width: 0; padding: 38px clamp(22px,3vw,54px) 60px; }
+.update-banner { display: flex; align-items: center; gap: 11px; margin: 0 0 20px; padding: 13px 15px; border: 1px solid rgba(22,163,74,.24); border-radius: 14px; color: var(--green-2); background: color-mix(in srgb,var(--mint) 52%,var(--surface)); }
+.update-banner div { display: grid; flex: 1; gap: 2px; }
+.update-banner b { color: var(--ink); font-size: 12px; }
+.update-banner span { color: var(--muted); font-size: 10px; }
+.update-banner a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border-radius: 9px; color: white; background: var(--green); font-size: 10px; font-weight: 750; text-decoration: none; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 34px; }
 .page-heading h1,.browse-heading h1 { margin: 7px 0 0; font-size: clamp(34px,4vw,58px); line-height: 1; letter-spacing: -.06em; font-weight: 620; }
 .page-heading p { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
@@ -384,6 +389,8 @@ body { min-width: 0; background: var(--paper); }
   .filter-row,.diagnostic-actions,.drawer-score-row { align-items: stretch; flex-direction: column; }
   .diagnostic-actions button { width: 100%; }
   .review-table { min-width: 720px; }
+  .update-banner { align-items: flex-start; flex-wrap: wrap; }
+  .update-banner a { margin-left: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -57,6 +57,21 @@ class DashboardAPITests(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.json()["ok"])
 
+    def test_update_status_uses_safe_release_checker(self):
+        expected = {
+            "ok": True,
+            "checked": True,
+            "current_version": "0.1.1",
+            "latest_version": "0.1.2",
+            "update_available": True,
+            "release_url": "https://github.com/RaghuramReddy9/opportune/releases/tag/v0.1.2",
+        }
+        with patch("dashapi.server.check_for_updates", return_value=expected):
+            resp = self.client.get("/api/update")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), expected)
+
     def test_cross_origin_mutation_is_rejected(self):
         resp = self.client.post(
             "/api/demo",

@@ -44,9 +44,10 @@ def build_questions(analysis: dict) -> list[dict]:
             "id": "work_focus",
             "number": 2,
             "required": True,
-            "kind": "single",
+            "kind": "multi",
+            "max_selections": 3,
             "title": "What kind of work do you want to spend most of your time doing?",
-            "helper": "This helps us separate roles you can do from roles you actually want.",
+            "helper": "Choose up to three. This separates roles you can do from work you actually want.",
             "options": [
                 {"value": "ai_product_engineering", "label": "Build AI-powered products", "description": "User-facing features, APIs, RAG, agents, and evaluation."},
                 {"value": "model_engineering", "label": "Train or improve models", "description": "Fine-tuning, experimentation, inference, and model quality."},

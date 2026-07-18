@@ -87,6 +87,28 @@ dashboard:
         self.assertEqual(args.host, "127.0.0.1")
         self.assertEqual(args.port, 8770)
 
+    def test_update_check_command_is_read_only_and_machine_readable(self):
+        args = jobhunt.build_parser().parse_args(["update", "check", "--json"])
+
+        self.assertIs(args.func, jobhunt.cmd_update)
+        self.assertEqual(args.action, "check")
+        self.assertTrue(args.json)
+
+        expected = {
+            "ok": True,
+            "checked": True,
+            "current_version": "0.1.1",
+            "latest_version": "0.1.2",
+            "update_available": True,
+            "release_url": "https://github.com/RaghuramReddy9/opportune/releases/tag/v0.1.2",
+        }
+        with patch("core.update_check.check_for_updates", return_value=expected), patch(
+            "jobhunt._dump"
+        ) as dumped:
+            jobhunt.cmd_update(args)
+
+        dumped.assert_called_once_with(expected, True)
+
     def test_resume_bypass_command_is_not_exposed(self):
         help_text = jobhunt.build_parser().format_help()
         self.assertNotIn("resume", help_text)

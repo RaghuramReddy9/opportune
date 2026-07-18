@@ -7,7 +7,6 @@ from core.location_normalization import normalize_location_preferences
 
 _REQUIRED = (
     "role_priorities",
-    "work_focus",
     "experience_levels",
     "location_preferences",
     "authorization",
@@ -65,6 +64,12 @@ def compile_search_config(analysis: dict, answers: dict) -> dict:
     levels = [str(item).strip() for item in answers["experience_levels"] if str(item).strip()]
     location = answers["location_preferences"]
     authorization = answers["authorization"]
+    raw_work_focuses = answers.get("work_focuses") or answers.get("work_focus") or []
+    if isinstance(raw_work_focuses, str):
+        raw_work_focuses = [raw_work_focuses]
+    work_focuses = list(dict.fromkeys(
+        str(item).strip() for item in raw_work_focuses if str(item).strip()
+    ))
     raw_locations = [str(item).strip() for item in location.get("locations", []) if str(item).strip()]
     normalized_locations = normalize_location_preferences(raw_locations)
     locations = raw_locations
@@ -74,6 +79,10 @@ def compile_search_config(analysis: dict, answers: dict) -> dict:
         raise ValueError("Choose at least one priority role")
     if not levels:
         raise ValueError("Choose at least one experience level")
+    if not work_focuses:
+        raise ValueError("Choose at least one kind of work")
+    if len(work_focuses) > 3:
+        raise ValueError("Choose no more than three kinds of work")
     if not locations:
         raise ValueError("Add at least one work location")
     if not work_modes:
@@ -94,7 +103,8 @@ def compile_search_config(analysis: dict, answers: dict) -> dict:
         "willing_to_relocate": bool(location.get("willing_to_relocate", False)),
         "visa_policy": visa_policy,
         "visa_needed": visa_policy in {"needs_sponsorship", "opt_cpt", "custom"},
-        "work_focus": str(answers["work_focus"]),
+        "work_focus": work_focuses[0],
+        "work_focuses": work_focuses,
         "employment_types": list(authorization.get("employment_types") or ["full_time"]),
         "exclusions": list(authorization.get("exclusions") or []),
         "authorization_note": str(authorization.get("note") or "").strip(),

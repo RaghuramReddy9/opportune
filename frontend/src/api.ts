@@ -106,6 +106,15 @@ export interface QualityReport {
   metrics: { exact_bucket_accuracy: number; apply_precision: number; surface_recall: number; unsafe_false_applies: number; fixture_count: number };
 }
 
+export interface UpdateStatus {
+  ok: boolean;
+  checked: boolean;
+  current_version: string;
+  latest_version: string;
+  update_available: boolean;
+  release_url: string;
+}
+
 export interface ScrapeResult {
   ok: boolean;
   raw_count: number;
@@ -160,6 +169,7 @@ async function jsonFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 export const api = {
   health: () => jsonFetch<SystemHealth>('/health'),
   quality: () => jsonFetch<QualityReport>('/quality'),
+  updateStatus: () => jsonFetch<UpdateStatus>('/update'),
   dashboard: () => jsonFetch<DashboardModel>('/dashboard'),
   config: () => jsonFetch<{ ok: boolean; config: AppConfig }>('/config'),
   saveConfig: (config: AppConfig) => jsonFetch<{ ok: boolean; path: string; config: AppConfig }>('/config', { method: 'POST', body: JSON.stringify({ config }) }),
