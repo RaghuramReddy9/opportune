@@ -59,7 +59,7 @@ class PublicOpsSafetyTests(unittest.TestCase):
 
         backup_path = backup_local_state()
 
-        self.assertEqual(backup_path.parent, self.tmp_path / "backups")
+        self.assertEqual(backup_path.parent.resolve(), (self.tmp_path / "backups").resolve())
         self.assertEqual(self._job_count_in_backup(backup_path), 1)
         self.assertEqual(stat.S_IMODE(backup_path.stat().st_mode), 0o600)
 
