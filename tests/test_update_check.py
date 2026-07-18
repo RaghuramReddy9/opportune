@@ -1,7 +1,7 @@
 """Safe, release-based software update checks."""
 from __future__ import annotations
 
-import tomllib
+import re
 from pathlib import Path
 
 
@@ -25,12 +25,12 @@ def test_package_and_runtime_versions_stay_in_sync():
     from core.update_check import CURRENT_VERSION
     from dashapi.server import app
 
-    package_version = tomllib.loads(
-        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    )["project"]["version"]
+    project_metadata = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    version_match = re.search(r'^version = "([^"]+)"$', project_metadata, re.MULTILINE)
 
-    assert CURRENT_VERSION == package_version
-    assert app.version == package_version
+    assert version_match is not None
+    assert CURRENT_VERSION == version_match.group(1)
+    assert app.version == version_match.group(1)
 
 
 def test_newer_github_release_is_reported_with_safe_release_link():
