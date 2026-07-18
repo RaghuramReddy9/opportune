@@ -4,7 +4,7 @@
 
 **Assessment date:** 2026-07-18
 
-**Current decision:** **NO-SHIP for a public Version 1 release.** The implementation and WSL artifact are substantially complete and verified, but the governed public benchmark and human pilot have not run, native Windows/macOS evidence is absent, accessibility evidence is incomplete, and no release artifact has been approved or published.
+**Current decision:** **NO-SHIP for a public Version 1 release.** The implementation and automated native-OS candidate matrix are verified, but the governed public benchmark and human pilot have not run, accessibility evidence is incomplete, and no release artifact has been approved or published.
 
 ## Status and evidence rules
 
@@ -64,8 +64,8 @@ These checks are local evidence only. Checksums change whenever the tree is rebu
 | Existing Opportune instance | PASS | Verified | focused launcher tests |
 | Foreign occupied port | PASS | Verified | focused launcher tests |
 | Loopback/non-loopback safety | PASS | Verified | loopback default; explicit opt-in required for non-loopback browser opening |
-| Platform-standard writable state | PASS | Partially verified | path tests and installed Linux artifact; native Windows/macOS runtime still required |
-| Native Windows/macOS launch | NOT RUN | Requires runtime testing | workflow exists but has not executed on this working tree |
+| Platform-standard writable state | PASS | Verified | path/lifecycle tests and installed-artifact smoke passed on Linux, Windows 2022, and macOS 14/15 |
+| Native Windows/macOS launch | PASS | Verified | `run --no-open`, readiness, health, assets, and clean shutdown passed in the release-candidate matrix |
 | GitHub Release/checksums | FAIL | Requires runtime testing | no maintainer-approved release object or frozen commit |
 
 ## 4. Onboarding, approval, and profile versions
@@ -132,14 +132,15 @@ These checks are local evidence only. Checksums change whenever the tree is rebu
 
 | Workflow | WSL/Linux | Ubuntu 22.04 | Ubuntu 24.04 | Windows | macOS 14/15 |
 |---|---|---|---|---|---|
-| Source tests/lint/build | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
-| Wheel install/help/health/assets | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
-| `run`/`desktop` lifecycle | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
-| Onboarding/approval/discovery | Partially verified | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
-| Backup/restore/reset/wipe/migrate | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Source tests/lint/build | PASS | PASS | PASS | PASS | PASS |
+| Wheel install/help/health/assets | PASS | PASS | PASS | PASS | PASS |
+| `run --no-open` lifecycle | PASS | PASS | PASS | PASS | PASS |
+| Browser app-mode `desktop` | Partially verified | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Automated onboarding/approval/discovery | PASS | PASS | PASS | PASS | PASS |
+| Backup/restore/reset/wipe/migrate | PASS | PASS | PASS | PASS | PASS |
 | Uninstall/data retention | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
 
-WSL and Docker do not substitute for native Windows or macOS evidence. The release-candidate workflow defines a native matrix but has not run against a frozen candidate.
+GitHub Actions release-candidate run `29652907626` passed on Ubuntu 22.04/24.04, Windows 2022, and macOS 14/15. The browser-opening app-mode `desktop` path remains a separate manual/native evidence gate; CI validates the non-opening server lifecycle.
 
 Pilot gates remain `NOT RUN`: install success, onboarding completion/time, first relevant result, top-5/top-10 relevance, repeat use, explanation trust, privacy understanding, prohibited-export count, and unsafe Ready count.
 
@@ -151,8 +152,7 @@ The working tree becomes eligible for a public ship decision only after:
 2. the governed benchmark corpus is labeled/adjudicated and all non-waivable thresholds pass;
 3. a real retained source-quality run and useful-listing review pass;
 4. the opt-in human pilot passes its safety, usefulness, privacy, and completion gates;
-5. native Windows/macOS workflows execute successfully before making those support claims;
-6. accessibility automation and manual keyboard/screen-reader/reflow evidence pass;
-7. maintainer review explicitly approves the artifacts and publication.
+5. accessibility automation and manual keyboard/screen-reader/reflow evidence pass;
+6. maintainer review explicitly approves the artifacts and publication.
 
-**Current result: NO-SHIP for public Version 1 release.** The implementation is locally testable and substantially verified, but external evidence gates remain intentionally open.
+**Current result: NO-SHIP for public Version 1 release.** The implementation and automated cross-platform candidate are substantially verified, but human benchmark, live-source usefulness, pilot, manual desktop, and accessibility evidence gates remain intentionally open.
