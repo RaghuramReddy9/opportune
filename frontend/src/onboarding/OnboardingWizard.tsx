@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 
 import { api } from '../api';
+import { normalizeWorkFocuses, parseLocationDraft, toggleCappedSelection } from './formState';
 import type {
   AuthorizationAnswer,
   LocationAnswer,
@@ -84,7 +85,7 @@ const EMPTY_AUTHORIZATION: AuthorizationAnswer = {
 
 const EMPTY_ANSWERS: OnboardingAnswers = {
   role_priorities: [],
-  work_focus: '',
+  work_focuses: [],
   experience_levels: [],
   location_preferences: EMPTY_LOCATION,
   authorization: EMPTY_AUTHORIZATION,
@@ -124,6 +125,7 @@ function prefillAnswers(session: OnboardingSession): OnboardingAnswers {
     return {
       ...EMPTY_ANSWERS,
       ...saved,
+      work_focuses: normalizeWorkFocuses(saved.work_focuses ?? saved.work_focus),
       location_preferences: { ...EMPTY_LOCATION, ...(saved.location_preferences ?? {}) },
       authorization: { ...EMPTY_AUTHORIZATION, ...(saved.authorization ?? {}) },
     };
@@ -328,6 +330,15 @@ function ToggleOption({ selected, label, description, onClick, order }: { select
   </button>;
 }
 
+function LocationInput({ locations, onChange }: { locations: string[]; onChange: (locations: string[]) => void }) {
+  const [draft, setDraft] = useState(() => locations.join(', '));
+  return <label>Countries, cities, or regions<input value={draft} onChange={(event) => {
+    const next = event.target.value;
+    setDraft(next);
+    onChange(parseLocationDraft(next));
+  }} placeholder="Example: United States, New York, Remote US" /><span>Separate multiple locations with commas.</span></label>;
+}
+
 function QuestionBody({ question, answers, setAnswers }: { question: OnboardingQuestion; answers: OnboardingAnswers; setAnswers: (next: OnboardingAnswers) => void }) {
   if (question.id === 'role_priorities') {
     return <div className="question-options role-question-options">{(question.options ?? []).map((option) => {
@@ -340,7 +351,13 @@ function QuestionBody({ question, answers, setAnswers }: { question: OnboardingQ
     })}</div>;
   }
   if (question.id === 'work_focus') {
-    return <div className="question-options">{(question.options ?? []).map((option) => <ToggleOption key={option.value} selected={answers.work_focus === option.value} label={option.label} description={option.description} onClick={() => setAnswers({ ...answers, work_focus: option.value })} />)}</div>;
+    return <div className="question-options">{(question.options ?? []).map((option) => {
+      const order = answers.work_focuses.indexOf(option.value) + 1;
+      return <ToggleOption key={option.value} selected={order > 0} order={order || undefined} label={option.label} description={option.description} onClick={() => setAnswers({
+        ...answers,
+        work_focuses: toggleCappedSelection(answers.work_focuses, option.value, question.max_selections ?? 3),
+      })} />;
+    })}</div>;
   }
   if (question.id === 'experience_levels') {
     return <div className="question-options compact-options">{(question.options ?? []).map((option) => <ToggleOption key={option.value} selected={answers.experience_levels.includes(option.value)} label={option.label} description={option.description} onClick={() => {
@@ -351,7 +368,7 @@ function QuestionBody({ question, answers, setAnswers }: { question: OnboardingQ
   if (question.id === 'location_preferences') {
     const location = answers.location_preferences;
     return <div className="location-question">
-      <label>Countries, cities, or regions<input value={location.locations.join(', ')} onChange={(event) => setAnswers({ ...answers, location_preferences: { ...location, locations: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) } })} placeholder="Example: United States, New York, Remote US" /><span>Separate multiple locations with commas.</span></label>
+      <LocationInput locations={location.locations} onChange={(locations) => setAnswers({ ...answers, location_preferences: { ...location, locations } })} />
       <div><span className="question-subhead">Work modes you can accept</span><div className="question-pill-row">{(question.work_mode_options ?? []).map((mode) => <button type="button" className={location.work_modes.includes(mode) ? 'selected' : ''} onClick={() => {
         const modes = location.work_modes.includes(mode) ? location.work_modes.filter((item) => item !== mode) : [...location.work_modes, mode];
         setAnswers({ ...answers, location_preferences: { ...location, work_modes: modes } });
@@ -373,7 +390,7 @@ function QuestionBody({ question, answers, setAnswers }: { question: OnboardingQ
 
 function questionReady(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
   if (question.id === 'role_priorities') return answers.role_priorities.length > 0;
-  if (question.id === 'work_focus') return !!answers.work_focus;
+  if (question.id === 'work_focus') return answers.work_focuses.length > 0;
   if (question.id === 'experience_levels') return answers.experience_levels.length > 0;
   if (question.id === 'location_preferences') return answers.location_preferences.locations.length > 0 && answers.location_preferences.work_modes.length > 0;
   return !!answers.authorization.visa_policy && answers.authorization.employment_types.length > 0;
@@ -387,6 +404,7 @@ function QuestionsStep({ session, answers, setAnswers, questionIndex, setQuestio
     <div className="onboarding-step-heading question-heading"><span className="onboarding-kicker">Your decision</span><h1>{question.title}</h1><p>{question.helper}</p></div>
     <QuestionBody question={question} answers={answers} setAnswers={setAnswers} />
     {question.id === 'role_priorities' && <p className="selection-count">{answers.role_priorities.length}/3 roles selected · your selection order sets priority</p>}
+    {question.id === 'work_focus' && <p className="selection-count">{answers.work_focuses.length}/3 work types selected · your selection order sets priority</p>}
     {error && <div className="onboarding-error"><AlertCircle size={16} /> {error}</div>}
     <div className="onboarding-actions"><button className="onboarding-back" type="button" onClick={() => setQuestionIndex(Math.max(0, questionIndex - 1))} disabled={questionIndex === 0}><ArrowLeft size={15} /> Previous</button><button className="onboarding-primary" type="button" disabled={!ready || busy} onClick={() => questionIndex < 4 ? setQuestionIndex(questionIndex + 1) : onReview()}>{busy ? <Loader2 className="spin" size={16} /> : null}{questionIndex < 4 ? 'Continue' : 'Build my search plan'} <ArrowRight size={15} /></button></div>
   </div>;
@@ -407,7 +425,7 @@ function ReviewStep({ plan, onBack, onApprove, busy, error }: { plan: SearchPlan
       <p>These choices decide which jobs Opportune finds and how it orders them. Nothing starts until you approve.</p>
     </div>
     <div className="review-plan-grid">
-      <section className="review-plan-card primary"><span>Priority roles</span><h2>{plan.roles.join(' · ')}</h2><p>{focusLabels[plan.work_focus] ?? humanize(plan.work_focus)}</p></section>
+      <section className="review-plan-card primary"><span>Priority roles</span><h2>{plan.roles.join(' · ')}</h2><p>{(plan.work_focuses ?? [plan.work_focus]).map((focus) => focusLabels[focus] ?? humanize(focus)).join(' · ')}</p></section>
       <section className="review-plan-card"><span>Experience</span><div className="review-token-row">{plan.target_levels.map((item) => <b key={item}>{humanize(item)}</b>)}</div></section>
       <section className="review-plan-card"><span>Location and work mode</span><h3><MapPin size={16} /> {plan.locations.join(' · ')}</h3><div className="review-token-row">{plan.work_modes.map((item) => <b key={item}>{humanize(item)}</b>)}{plan.willing_to_relocate && <b>Open to relocation</b>}</div></section>
       <section className="review-plan-card"><span>Work authorization</span><h3>{plan.visa_policy === 'opt_cpt' ? 'OPT / CPT; future sponsorship may be needed' : humanize(plan.visa_policy)}</h3><p>Employment: {plan.employment_types.map(humanize).join(', ')}</p></section>

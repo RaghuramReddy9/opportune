@@ -30,7 +30,7 @@ import {
   UserCircle,
   Briefcase,
 } from 'lucide-react';
-import { api, type Job, type DashboardModel, type AppConfig, type SystemHealth, type QualityReport, type ProfileInfo, type DiscoveryFunnel, type EffectiveSearchRules } from './api';
+import { api, type Job, type DashboardModel, type AppConfig, type SystemHealth, type QualityReport, type ProfileInfo, type DiscoveryFunnel, type EffectiveSearchRules, type UpdateStatus } from './api';
 import OnboardingWizard from './onboarding/OnboardingWizard';
 import type { OnboardingStatus } from './onboarding/types';
 
@@ -411,6 +411,7 @@ export default function App() {
   const [quality, setQuality] = useState<QualityReport | null>(null);
   const [funnel, setFunnel] = useState<DiscoveryFunnel | null>(null);
   const [effectiveRules, setEffectiveRules] = useState<EffectiveSearchRules | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
@@ -429,13 +430,14 @@ export default function App() {
 
   const loadData = useCallback(async () => {
     try {
-      const [dashboard, system, ranking, profilesRes, onboardingRes, funnelRes] = await Promise.all([
+      const [dashboard, system, ranking, profilesRes, onboardingRes, funnelRes, updateRes] = await Promise.all([
         api.dashboard(),
         api.health(),
         api.quality(),
         api.listProfiles().catch(() => ({ ok: false, profiles: [] as ProfileInfo[] })),
         api.onboarding(),
         api.discoveryFunnel().catch(() => null),
+        api.updateStatus().catch(() => null),
       ]);
       setData(dashboard);
       setHealth(system);
@@ -448,6 +450,7 @@ export default function App() {
         setFunnel('version' in funnelRes.funnel ? funnelRes.funnel as DiscoveryFunnel : null);
         setEffectiveRules(funnelRes.effective_profile);
       }
+      setUpdateStatus(updateRes);
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
     finally { setLoading(false); }
@@ -538,6 +541,7 @@ export default function App() {
       <div className="rail-console">{logs.slice(-3).map((line, index) => <span key={`${line}-${index}`}>{line}</span>)}</div>
     </aside>
     <main className="product-workspace">
+      {updateStatus?.update_available && <div className="update-banner" role="status"><Download size={17} /><div><b>Opportune {updateStatus.latest_version} is available</b><span>You are using {updateStatus.current_version}. Review the release before updating.</span></div><a href={updateStatus.release_url} target="_blank" rel="noreferrer">View update <ExternalLink size={13} /></a></div>}
       {error && <div className="error-banner"><XCircle size={16} /> {error}</div>}
       {view === 'dashboard' && <><section className="page-heading"><div><span className="page-eyebrow">Good {greeting}{candidateName ? `, ${candidateName}` : ''}</span><h1>Your job search, under control.</h1><p>Opportune searches across your roles and locations, then brings the jobs that best match your experience to the top.</p>{data?.profile && <div className="profile-stat-bar"><span className="profile-stat-badge"><Briefcase size={12} /> {data.profile.name}</span><span className="profile-stat-badge success"><CheckCircle2 size={12} /> {data.profile.applied} applied / {data.profile.in_pipeline} in progress</span></div>}</div><div className="heading-stat"><b>{data?.stats.total ?? 0}</b><span>saved jobs</span></div></section><section className="top-section"><div className="section-title"><div><span>Best matches</span><h2>Start with the jobs that fit your experience best</h2></div><button onClick={() => setView('discover')}>Browse all <ChevronRight size={14} /></button></div><div className="top-match-grid">{topJobs.map((job) => <TopMatch job={job} key={job.job_uid} onSelect={setSelectedJob} />)}{!topJobs.length && <DiscoveryEmptyState funnel={funnel} rules={effectiveRules} onRun={runScrape} onSettings={() => setView('settings')} />}</div></section><section className="applications-section"><div className="section-title"><div><span>Saved jobs</span><h2>All jobs in your search</h2></div><div className="inline-pills"><span>{counts.pool} saved</span><span>{counts.apply_now} ready</span><span>{counts.watch} to review</span><span>{counts.active_pipeline} in progress</span></div></div><ReviewTable jobs={reviewJobs} onSelect={setSelectedJob} /></section></>}
       {(view === 'discover' || view === 'review') && <>

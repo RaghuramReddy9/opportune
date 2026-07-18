@@ -196,6 +196,29 @@ def test_question_builder_returns_exactly_five_required_clear_questions():
     assert "Built production RAG" in role_options[0]["description"]
 
 
+def test_work_focus_question_allows_up_to_three_choices():
+    question = build_questions(ANALYSIS)[1]
+
+    assert question["id"] == "work_focus"
+    assert question["kind"] == "multi"
+    assert question["max_selections"] == 3
+
+
+def test_config_compiler_preserves_all_work_focus_choices_and_primary_focus():
+    answers = json.loads(json.dumps(ANSWERS))
+    answers.pop("work_focus")
+    answers["work_focuses"] = [
+        "ai_product_engineering",
+        "customer_facing",
+        "platform_infrastructure",
+    ]
+
+    config = compile_search_config(ANALYSIS, answers)
+
+    assert config["work_focus"] == "ai_product_engineering"
+    assert config["work_focuses"] == answers["work_focuses"]
+
+
 def test_config_compiler_uses_answers_as_final_authority():
     config = compile_search_config(ANALYSIS, ANSWERS)
 

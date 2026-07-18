@@ -17,6 +17,7 @@ The project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 - Structured GitHub Issue forms, Pull Request template, CI, Dependabot, support policy, and maintainer guide.
 - Public dashboard and onboarding screenshots.
 - Future email-evidence/outreach schema and safety design.
+- Cached GitHub Release checks through the dashboard and `opportune update check`, with an explicit review link instead of silent installation.
 
 ### Changed
 
@@ -27,6 +28,11 @@ The project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 - Dashboard and onboarding copy is concise and non-technical.
 - Branding now uses the Opportune forest, mint, and warm-cream palette.
 - Approved onboarding profiles are the only supported search-activation path.
+
+### Fixed
+
+- Onboarding work focus accepts up to three ordered choices while preserving the first choice as the backward-compatible primary focus.
+- Location entry preserves spaces and commas while typing instead of destructively normalizing the visible text after every keystroke.
 
 ### Deferred
 

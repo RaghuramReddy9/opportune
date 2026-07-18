@@ -211,6 +211,7 @@ def tools_manifest() -> dict[str, Any]:
             {"name": "smart scrape", "command": "uv run opp smart --json", "description": "Run small scrape windows and stop when enough high Apply Window jobs are found; add --live to update dashboard SQLite.", "safety": "read-only by default; local-write with --live", "output": "{ok, windows_run, high_apply_windows, dashboard_jobs[]}"},
             {"name": "scheduler", "command": "uv run opp schedule run --once --json", "description": "Run due direct ATS and board discovery tasks with durable state and overlap locking; omit --once for a foreground daemon.", "safety": "local-write", "output": "{ok, ran[], skipped[], state_path}"},
             {"name": "ranking quality", "command": "uv run opp quality --json", "description": "Evaluate the labeled ranking benchmark and release safety gates.", "safety": "read-only", "output": "{ok, metrics, quality_gates, errors[]}"},
+            {"name": "update check", "command": "uv run opp update check --json", "description": "Check the latest published GitHub Release without installing it.", "safety": "read-only network", "output": "{ok, checked, current_version, latest_version, update_available, release_url}"},
             {"name": "pool rebuild", "command": "uv run opp jobs rebuild-pool --json", "description": "Materialize configured role+location matches from the local source catalog without scraping again.", "safety": "local-write", "output": "{ok, catalog_active, pool_matches, materialized}"},
             {"name": "jobs list", "command": "uv run opp jobs list --json --limit 20", "aliases": ["uv run opp jobs ls --json"], "description": "List local SQLite jobs with optional status/action/query filters.", "safety": "read-only", "output": "{ok, count, jobs[]}"},
             {"name": "jobs update", "command": "uv run opp jobs update <job_uid> --status watch --note 'review later' --json", "description": "Update local job status/note. No external submission.", "safety": "local-write", "output": "{ok, job}"},
@@ -476,6 +477,15 @@ def cmd_pilot(args):
     _dump(result, args.json)
 
 
+def cmd_update(args):
+    """Check for a newer published Opportune release without installing it."""
+    if args.action != "check":
+        raise SystemExit("unknown update action")
+    from core.update_check import check_for_updates
+
+    _dump(check_for_updates(force=True), args.json)
+
+
 def cmd_links(args):
     """Backfill link-verification for stored jobs missing a verified date."""
     from dashboard.db import connect, list_jobs, set_link_status
@@ -596,6 +606,11 @@ def build_parser() -> argparse.ArgumentParser:
     pdiag = sub.add_parser("diagnose", help="explain where the latest discovery run stopped")
     pdiag.add_argument("--json", action="store_true", help="emit JSON")
     pdiag.set_defaults(func=cmd_diagnose)
+
+    update = sub.add_parser("update", help="check for a newer published Opportune release")
+    update.add_argument("action", choices=["check"])
+    update.add_argument("--json", action="store_true", help="emit JSON")
+    update.set_defaults(func=cmd_update)
 
     pa = sub.add_parser("audit", help="pipeline health check")
     pa.add_argument("--json", action="store_true", help="emit JSON")

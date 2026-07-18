@@ -71,7 +71,8 @@ export interface AuthorizationAnswer {
 
 export interface OnboardingAnswers {
   role_priorities: string[];
-  work_focus: string;
+  work_focuses: string[];
+  work_focus?: string;
   experience_levels: string[];
   location_preferences: LocationAnswer;
   authorization: AuthorizationAnswer;
@@ -90,6 +91,7 @@ export interface SearchPlan {
   visa_policy: string;
   visa_needed: boolean;
   work_focus: string;
+  work_focuses?: string[];
   employment_types: string[];
   exclusions: string[];
   authorization_note?: string;

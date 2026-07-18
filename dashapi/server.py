@@ -57,6 +57,7 @@ from dashboard.db import (
     upsert_scraped_job,
 )
 from core.source_health import load_health
+from core.update_check import CURRENT_VERSION, check_for_updates
 from pipeline.scrape import scrape_all
 from pipeline.smart_scrape import smart_scrape
 from onboarding.providers import (
@@ -75,7 +76,7 @@ async def _lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Opportune", version="0.1.0", lifespan=_lifespan)
+app = FastAPI(title="Opportune", version=CURRENT_VERSION, lifespan=_lifespan)
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["127.0.0.1", "localhost", "testserver", "[::1]"],
@@ -220,6 +221,12 @@ def health():
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"health check failed: {exc}") from exc
+
+
+@app.get("/api/update")
+def api_update_status():
+    """Return cached GitHub Release availability without blocking app startup."""
+    return check_for_updates()
 
 
 @app.post("/api/enrichment/backfill")

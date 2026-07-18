@@ -16,6 +16,11 @@ Agent operation:
 4. Treat `scrape` as dry-run unless `--live` is explicitly requested.
 5. Treat `privacy wipe` as destructive-local and ask first.
 
+Project memory:
+- Read `.memory/AGENT_CONTEXT.md` at the start of a development session when it exists.
+- Update the ignored `.memory/` files when durable local context, decisions, or verification results change.
+- Keep secrets, resumes, databases, reports, and runtime artifacts out of tracked files; `.memory/` is intentionally local-only.
+
 Before finishing:
 1. Run the smallest meaningful verification.
 2. For backend changes: `uv run python -m pytest tests/ -q`.

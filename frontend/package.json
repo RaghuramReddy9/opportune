@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint --ignore-pattern 'dist/**'",
+    "test": "tsc --ignoreConfig src/onboarding/formState.ts --target es2023 --module esnext --moduleResolution bundler --outDir .test-dist --skipLibCheck && node --test tests/*.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

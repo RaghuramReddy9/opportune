@@ -83,6 +83,25 @@ opportune run
 
 No public GitHub Release artifact is published yet; until one is attached, the commands above apply to locally built release-candidate wheels.
 
+### Updates
+
+Opportune checks GitHub's latest published stable Release while the dashboard is open. If a newer version exists, the dashboard shows the installed version, the new version, and a link to review the release. It never silently replaces the running application.
+
+You can also check from the terminal:
+
+```bash
+opportune update check --json
+```
+
+Before installing a reviewed wheel, create a local backup and then replace the installed tool:
+
+```bash
+opportune privacy backup --json
+uv tool install --force ./opportune-<version>-py3-none-any.whl
+```
+
+Merged code does not notify users by itself. Maintainers must publish a versioned GitHub Release, such as `v0.1.1`, after its release gates pass.
+
 ## Contributor quickstart
 
 Requirements:
