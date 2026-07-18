@@ -1,6 +1,8 @@
 """
 core/http.py — Shared HTTP session with retry logic.
 """
+import socket
+
 import requests
 from ipaddress import ip_address
 from requests.adapters import HTTPAdapter
@@ -52,8 +54,13 @@ def sanitize_url(url: str) -> str:
     return u
 
 
-def is_safe_public_url(url: str | None) -> bool:
-    """Reject malformed URLs and literal local/private network destinations."""
+def is_safe_public_url(url: str | None, *, resolve_dns: bool = False) -> bool:
+    """Reject malformed URLs and local/private destinations.
+
+    ``resolve_dns`` is reserved for code that is about to make a network request.
+    It fails closed when a hostname does not resolve or any resolved address is not
+    globally routable.
+    """
     if not url:
         return False
     parsed = urlparse(url)
@@ -65,4 +72,20 @@ def is_safe_public_url(url: str | None) -> bool:
     try:
         return ip_address(host).is_global
     except ValueError:
-        return True
+        if not resolve_dns:
+            return True
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        addresses = {
+            sockaddr[0]
+            for _family, _kind, _proto, _canonname, sockaddr in socket.getaddrinfo(
+                host,
+                port,
+                type=socket.SOCK_STREAM,
+            )
+        }
+    except (OSError, ValueError):
+        return False
+    return bool(addresses) and all(
+        ip_address(str(address).split("%", 1)[0]).is_global for address in addresses
+    )

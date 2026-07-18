@@ -110,6 +110,24 @@ export interface ScrapeResult {
   ok: boolean;
   raw_count: number;
   dashboard: DashboardModel;
+  discovery_funnel: DiscoveryFunnel;
+}
+
+export interface DiscoveryFunnelStage {
+  count: number;
+  reason_codes: Record<string, number>;
+  by_source: Record<string, number>;
+}
+
+export interface DiscoveryFunnel {
+  version: number;
+  stages: Record<string, DiscoveryFunnelStage>;
+}
+
+export interface EffectiveSearchRules {
+  roles: string[];
+  locations: string[];
+  max_age_days: number;
 }
 
 
@@ -173,5 +191,7 @@ export const api = {
 
   scrape: (dryRun = true) =>
     jsonFetch<ScrapeResult>(`/scrape?dry_run=${dryRun}`, { method: 'POST' }),
+  discoveryFunnel: () =>
+    jsonFetch<{ ok: boolean; funnel: DiscoveryFunnel | Record<string, never>; effective_profile: EffectiveSearchRules }>('/discovery-funnel'),
 
 };

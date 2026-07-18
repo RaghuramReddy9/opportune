@@ -1,17 +1,16 @@
 # Public release checklist
 
-The private development repository must not be made public directly. Its older history may contain personal or obsolete project data even when the current working tree is clean.
+The canonical repository is public. Normal changes land through its protected pull-request workflow. The allowlisted export remains a defense-in-depth audit that proves a candidate can be reconstructed without local or private runtime state.
 
 ## Release model
 
-1. Finish and verify the development tree.
-2. Export an allowlisted clean tree into `.release/opportune`.
-3. Initialize a new Git repository with one release-candidate commit.
-4. Run every gate again inside that clean repository.
-5. Show the exact tree, commit, scans, and known limits to the maintainer.
-6. Push only after maintainer approval to push.
-7. Keep the new GitHub repository private until explicit public-release approval.
-8. Tag `v0.1.0` only from the verified public candidate.
+1. Finish and verify a feature branch.
+2. Export an allowlisted clean tree into `.release/opportune` as a privacy/completeness audit.
+3. Run the local source, frontend, package, installed-artifact, dependency, and secret gates.
+4. Show the exact branch diff, scans, and known limits to the maintainer.
+5. Push the branch only after maintainer approval.
+6. Require protected-branch CI before merging to `main`.
+7. Tag or publish a release only after its separate release-evidence gates pass.
 
 ## Candidate must contain
 
@@ -69,9 +68,9 @@ Do not validate only from the source tree.
 
 1. Create a temporary virtual environment outside the candidate.
 2. Install the built wheel.
-3. Run `opp --help` and confirm `start`, `doctor`, `quality`, and `privacy` are present.
-4. Run `opp doctor --json` in an empty temporary working directory.
-5. Start the installed dashboard on a temporary port.
+3. Run `opp --help` and `opportune --help` and confirm the documented command groups are present.
+4. Run `opportune run --no-open` in an empty temporary working directory on a temporary port.
+5. Wait for bounded readiness rather than assuming the process is ready.
 6. Confirm:
    - `/` serves the React shell;
    - `/api/health` returns `service: opportune`;

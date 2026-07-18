@@ -1,0 +1,95 @@
+name: Release candidate matrix
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "MANIFEST.in"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "config.example.yaml"
+      - "source_registry.yaml"
+      - "frontend/**"
+      - "scripts/smoke_installed.py"
+      - ".github/workflows/release-candidate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-package-smoke:
+    name: ${{ matrix.os }} / Python 3.12
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, windows-2022, macos-14, macos-15]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build packaged frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --frozen
+
+      - name: Backend checks
+        run: |
+          uv run ruff check .
+          uv run pytest -q
+          uv run opp quality --json
+
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Verify candidate privacy in wheel and source distribution
+        run: >-
+          uv run python -c "from pathlib import Path; import tarfile,zipfile;
+          root=Path('dist'); forbidden={'candidate_profile.yaml','resume.txt','resume_profile.md'};
+          wheel=next(root.glob('*.whl')); sdist=next(root.glob('*.tar.gz'));
+          wheel_names={Path(n).name for n in zipfile.ZipFile(wheel).namelist()};
+          sdist_names={Path(n).name for n in tarfile.open(sdist).getnames()};
+          assert not forbidden & wheel_names; assert not forbidden & sdist_names"
+
+      - name: Smoke installed wheel, CLI, health, and packaged assets
+        run: uv run python -c "from pathlib import Path; from scripts.smoke_installed import smoke; smoke(next(Path('dist').glob('*.whl')))"
+
+      - name: Write SHA-256 checksums
+        run: uv run python -c "import hashlib; from pathlib import Path; files=sorted(Path('dist').glob('*')); Path('dist/SHA256SUMS').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in files if p.is_file()), encoding='utf-8')"
+
+      - name: Upload candidate artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: opportune-${{ matrix.os }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

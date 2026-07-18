@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import socket
 from email.message import Message
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -33,12 +34,21 @@ class LinkCheckTests(unittest.TestCase):
     def test_private_network_url_is_rejected_without_request(self):
         from core.link_check import verify_job_link
 
-        with patch("core.link_check.urllib.request.urlopen") as request:
+        with patch("core.link_check._open_url") as request:
             status = verify_job_link("http://127.0.0.1:8000/admin")
 
         self.assertFalse(status["ok"])
         self.assertEqual(status["link_status"], "unsafe")
         request.assert_not_called()
+
+    def test_hostname_resolving_to_private_network_is_rejected(self):
+        from core.link_check import _is_safe_link_url
+
+        private_resolution = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.7", 443))
+        ]
+        with patch("core.http.socket.getaddrinfo", return_value=private_resolution):
+            self.assertFalse(_is_safe_link_url("https://jobs.example.net/opening"))
 
     def test_placeholder_url_is_flagged_dead(self):
         from core.link_check import verify_job_link
@@ -46,7 +56,7 @@ class LinkCheckTests(unittest.TestCase):
         self.assertFalse(status["ok"])
         self.assertEqual(status["link_status"], "placeholder")
 
-    @patch("core.link_check.urllib.request.urlopen")
+    @patch("core.link_check._open_url")
     def test_reachable_url_is_ok(self, mock_urlopen):
         from core.link_check import verify_job_link
 
@@ -55,21 +65,73 @@ class LinkCheckTests(unittest.TestCase):
         response.geturl.return_value = "https://job-boards.greenhouse.io/scaleai/jobs/4625345005"
         response.__enter__.return_value = response
         mock_urlopen.return_value = response
-        status = verify_job_link("https://job-boards.greenhouse.io/scaleai/jobs/4625345005")
+        with patch("core.link_check._is_safe_link_url", return_value=True):
+            status = verify_job_link("https://job-boards.greenhouse.io/scaleai/jobs/4625345005")
         self.assertTrue(status["ok"])
         self.assertEqual(status["link_status"], "ok")
         self.assertIn("checked_at", status)
 
-    @patch("core.link_check.urllib.request.urlopen")
+    @patch("core.link_check._open_url")
     def test_head_failure_falls_back_to_get_and_marks_404_dead(self, mock_urlopen):
         from core.link_check import verify_job_link
 
         error = HTTPError("https://jobs.example.net/closed", 404, "Not Found", Message(), None)
         mock_urlopen.side_effect = [error, error]
-        status = verify_job_link("https://jobs.example.net/closed")
+        with patch("core.link_check._is_safe_link_url", return_value=True):
+            status = verify_job_link("https://jobs.example.net/closed")
         self.assertFalse(status["ok"])
         self.assertEqual(status["link_status"], "dead")
         self.assertEqual(mock_urlopen.call_count, 2)
+
+    def test_inconclusive_http_errors_are_not_marked_dead(self):
+        from core.link_check import verify_job_link
+
+        for code in (401, 403, 429, 500, 503):
+            with self.subTest(code=code), patch("core.link_check._open_url") as mock_urlopen, patch(
+                "core.link_check._is_safe_link_url", return_value=True
+            ):
+                error = HTTPError("https://jobs.example.net/opening", code, "Unavailable", Message(), None)
+                mock_urlopen.side_effect = [error, error]
+
+                status = verify_job_link("https://jobs.example.net/opening")
+
+                self.assertFalse(status["ok"])
+                self.assertEqual(status["link_status"], "inconclusive")
+                self.assertEqual(mock_urlopen.call_count, 2)
+
+    def test_redirect_handler_rejects_private_destination_before_following(self):
+        from core.link_check import UnsafeRedirectError, _SafeRedirectHandler
+
+        handler = _SafeRedirectHandler()
+        with patch("core.link_check._is_safe_link_url", return_value=False), self.assertRaises(
+            UnsafeRedirectError
+        ):
+            handler.redirect_request(
+                None,
+                None,
+                302,
+                "Found",
+                Message(),
+                "http://127.0.0.1/admin",
+            )
+
+    @patch("core.link_check._open_url")
+    def test_final_redirect_url_is_revalidated(self, mock_open):
+        from core.link_check import verify_job_link
+
+        response = MagicMock()
+        response.status = 200
+        response.geturl.return_value = "http://127.0.0.1/admin"
+        response.__enter__.return_value = response
+        mock_open.return_value = response
+        with patch(
+            "core.link_check._is_safe_link_url",
+            side_effect=lambda value: not value.startswith("http://127."),
+        ):
+            status = verify_job_link("https://jobs.example.net/opening")
+
+        self.assertFalse(status["ok"])
+        self.assertEqual(status["link_status"], "unsafe")
 
 
 class DemoSeparationTests(unittest.TestCase):

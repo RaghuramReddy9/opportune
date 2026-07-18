@@ -80,8 +80,25 @@ CREATE TABLE IF NOT EXISTS profiles (
     extracted_json TEXT DEFAULT '{}',
     is_active INTEGER DEFAULT 0,
     created_at TEXT NOT NULL,
-    last_used_at TEXT DEFAULT ''
+    last_used_at TEXT DEFAULT '',
+    active_version_id TEXT DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS profile_versions (
+    version_id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    schema_version INTEGER DEFAULT 1,
+    status TEXT NOT NULL CHECK (status IN ('draft', 'approved', 'superseded')),
+    resume_text TEXT NOT NULL,
+    extracted_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    approved_at TEXT DEFAULT '',
+    FOREIGN KEY (profile_id) REFERENCES profiles(profile_id)
+);
+CREATE INDEX IF NOT EXISTS idx_profile_versions_profile ON profile_versions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_profile_versions_status ON profile_versions(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_versions_rev ON profile_versions(profile_id, revision);
 
 CREATE TABLE IF NOT EXISTS scrape_runs (
     run_id TEXT PRIMARY KEY,
@@ -93,6 +110,19 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
     listing_count INTEGER DEFAULT 0,
     error TEXT DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS discovery_funnel (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    reason_codes TEXT DEFAULT '{}',
+    by_source TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (run_id) REFERENCES scrape_runs(run_id)
+);
+CREATE INDEX IF NOT EXISTS idx_funnel_run ON discovery_funnel(run_id);
+CREATE INDEX IF NOT EXISTS idx_funnel_stage ON discovery_funnel(stage);
 
 CREATE TABLE IF NOT EXISTS job_catalog (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,13 +268,104 @@ def init_db(db_path: Path | None = None) -> None:
                 extracted_json TEXT DEFAULT '{}',
                 is_active INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL,
-                last_used_at TEXT DEFAULT ''
+                last_used_at TEXT DEFAULT '',
+                active_version_id TEXT DEFAULT ''
             );
+            CREATE TABLE IF NOT EXISTS profile_versions (
+                version_id TEXT PRIMARY KEY,
+                profile_id TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                schema_version INTEGER DEFAULT 1,
+                status TEXT NOT NULL CHECK (status IN ('draft', 'approved', 'superseded')),
+                resume_text TEXT NOT NULL,
+                extracted_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                approved_at TEXT DEFAULT '',
+                FOREIGN KEY (profile_id) REFERENCES profiles(profile_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_profile_versions_profile ON profile_versions(profile_id);
+            CREATE INDEX IF NOT EXISTS idx_profile_versions_status ON profile_versions(status);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_versions_rev ON profile_versions(profile_id, revision);
+            CREATE TABLE IF NOT EXISTS onboarding_sessions (
+                session_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                filename TEXT DEFAULT '',
+                resume_text TEXT DEFAULT '',
+                provider TEXT DEFAULT 'local',
+                analysis_json TEXT DEFAULT '{}',
+                questions_json TEXT DEFAULT '[]',
+                answers_json TEXT DEFAULT '{}',
+                final_config_json TEXT DEFAULT '{}',
+                profile_id TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_onboarding_updated ON onboarding_sessions(updated_at);
             """
         )
         # Older seeded rows predate the explicit is_demo flag.
         conn.execute(
             "UPDATE jobs SET is_demo = 1 WHERE source = 'sample_data' AND is_demo = 0"
+        )
+        # Existing databases need the profile-version pointer before backfill.
+        profile_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(profiles)").fetchall()
+        }
+        if "active_version_id" not in profile_columns:
+            conn.execute("ALTER TABLE profiles ADD COLUMN active_version_id TEXT DEFAULT ''")
+        # Existing profile rows were created only after explicit approval. Preserve
+        # that approval as immutable version 1 rather than forcing re-onboarding.
+        _backfill_profile_versions(conn)
+
+
+def _backfill_profile_versions(conn: sqlite3.Connection) -> None:
+    """Idempotently snapshot legacy approved profiles as version 1."""
+    profiles = conn.execute(
+        "SELECT profile_id, resume_text, extracted_json, created_at, last_used_at "
+        "FROM profiles"
+    ).fetchall()
+    for profile in profiles:
+        profile_id = profile["profile_id"]
+        existing = conn.execute(
+            "SELECT version_id, revision, status FROM profile_versions WHERE profile_id = ? "
+            "ORDER BY revision DESC LIMIT 1",
+            (profile_id,),
+        ).fetchone()
+        if existing:
+            # Repair databases initialized by the interrupted draft-only migration:
+            # create_profile historically meant the user had already approved.
+            if existing["revision"] == 1 and existing["status"] == "draft":
+                conn.execute(
+                    "UPDATE profile_versions SET status = 'approved', approved_at = ? "
+                    "WHERE version_id = ?",
+                    (profile["last_used_at"] or profile["created_at"] or _now_iso(), existing["version_id"]),
+                )
+            conn.execute(
+                "UPDATE profiles SET active_version_id = COALESCE(NULLIF(active_version_id, ''), ?) "
+                "WHERE profile_id = ?",
+                (existing["version_id"], profile_id),
+            )
+            continue
+        version_id = uuid.uuid4().hex
+        created_at = profile["created_at"] or _now_iso()
+        approved_at = profile["last_used_at"] or created_at
+        conn.execute(
+            """INSERT INTO profile_versions
+               (version_id, profile_id, revision, schema_version, status,
+                resume_text, extracted_json, created_at, approved_at)
+               VALUES (?, ?, 1, 1, 'approved', ?, ?, ?, ?)""",
+            (
+                version_id,
+                profile_id,
+                profile["resume_text"] or "",
+                profile["extracted_json"] or "{}",
+                created_at,
+                approved_at,
+            ),
+        )
+        conn.execute(
+            "UPDATE profiles SET active_version_id = ? WHERE profile_id = ?",
+            (version_id, profile_id),
         )
 
 
@@ -550,6 +671,67 @@ def finish_scrape_run(
         """,
         (finished_at or _now_iso(), status, source_count, listing_count, error[:1000], run_id),
     )
+
+
+def save_discovery_funnel(
+    conn: sqlite3.Connection,
+    run_id: str,
+    funnel: dict,
+) -> None:
+    """Replace one run's versioned discovery funnel atomically."""
+    import json
+
+    from pipeline.funnel import DISCOVERY_FUNNEL_VERSION, FUNNEL_STAGES
+
+    if funnel.get("version") != DISCOVERY_FUNNEL_VERSION:
+        raise ValueError("unsupported discovery-funnel version")
+    stages = funnel.get("stages", {})
+    conn.execute("DELETE FROM discovery_funnel WHERE run_id = ?", (run_id,))
+    for stage in FUNNEL_STAGES:
+        data = stages.get(stage, {})
+        count = int(data.get("count", 0))
+        reason_codes = json.dumps(data.get("reason_codes", {}), ensure_ascii=False)
+        by_source = json.dumps(data.get("by_source", {}), ensure_ascii=False)
+        conn.execute(
+            """
+            INSERT INTO discovery_funnel (run_id, stage, count, reason_codes, by_source)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (run_id, stage, count, reason_codes, by_source),
+        )
+
+
+def get_discovery_funnel(
+    conn: sqlite3.Connection,
+    run_id: str | None = None,
+) -> dict:
+    """Retrieve a versioned funnel for a specific run or the latest run."""
+    import json
+
+    from pipeline.funnel import new_funnel
+
+    if run_id is None:
+        latest = conn.execute("SELECT run_id FROM scrape_runs ORDER BY started_at DESC LIMIT 1").fetchone()
+        if not latest:
+            return {}
+        run_id = latest["run_id"]
+    rows = conn.execute(
+        "SELECT stage, count, reason_codes, by_source FROM discovery_funnel "
+        "WHERE run_id = ? ORDER BY id",
+        (run_id,),
+    ).fetchall()
+    if not rows:
+        return {}
+    funnel = new_funnel()
+    for row in rows:
+        if row["stage"] not in funnel["stages"]:
+            continue
+        funnel["stages"][row["stage"]] = {
+            "count": int(row["count"]),
+            "reason_codes": json.loads(row["reason_codes"] or "{}"),
+            "by_source": json.loads(row["by_source"] or "{}"),
+        }
+    return funnel
 
 
 def get_catalog_stats(conn: sqlite3.Connection) -> dict[str, int]:
@@ -1104,103 +1286,278 @@ def bump_enrichment_failure(conn: sqlite3.Connection, job_uid: str, error: str) 
 
 # ── Profile CRUD ──
 
+
+def _invalidate_candidate_cache() -> None:
+    try:
+        from resume.resume_profile import invalidate_candidate_cache
+
+        invalidate_candidate_cache()
+    except Exception:
+        pass
+
+
 def create_profile(
     name: str,
     resume_text: str,
     extracted_json: str,
     db_path: Path | None = None,
 ) -> str:
-    """Insert a new profile, set it active, and return its profile_id.
+    """Create and atomically activate approved version 1.
 
-    Any previously active profile is deactivated first so there is always at
-    most one active profile at a time. Onboarding calls this only after the user
-    approves the final search plan.
+    This compatibility API is called only after explicit onboarding approval.
+    Later edits must use ``create_draft_version`` and ``approve_version``.
     """
-    import uuid as _uuid
-    profile_id = _uuid.uuid4().hex
+    profile_id = uuid.uuid4().hex
+    version_id = uuid.uuid4().hex
     now = _now_iso()
     with connect(db_path) as conn:
-        # Deactivate all existing profiles.
         conn.execute("UPDATE profiles SET is_active = 0")
         conn.execute(
-            """
-            INSERT INTO profiles (profile_id, name, resume_text, extracted_json,
-                                  is_active, created_at, last_used_at)
-            VALUES (?, ?, ?, ?, 1, ?, ?)
-            """,
-            (profile_id, name or "", resume_text or "", extracted_json or "{}", now, now),
+            """INSERT INTO profiles
+               (profile_id, name, resume_text, extracted_json, is_active,
+                created_at, last_used_at, active_version_id)
+               VALUES (?, ?, ?, ?, 1, ?, ?, ?)""",
+            (
+                profile_id,
+                name or "",
+                resume_text or "",
+                extracted_json or "{}",
+                now,
+                now,
+                version_id,
+            ),
         )
-    # Invalidate the candidate cache so get_profile_config() picks up the
-    # new profile immediately without a process restart.
-    try:
-        from resume.resume_profile import invalidate_candidate_cache  # noqa: PLC0415
-        invalidate_candidate_cache()
-    except Exception:
-        pass
+        conn.execute(
+            """INSERT INTO profile_versions
+               (version_id, profile_id, revision, schema_version, status,
+                resume_text, extracted_json, created_at, approved_at)
+               VALUES (?, ?, 1, 1, 'approved', ?, ?, ?, ?)""",
+            (
+                version_id,
+                profile_id,
+                resume_text or "",
+                extracted_json or "{}",
+                now,
+                now,
+            ),
+        )
+    _invalidate_candidate_cache()
     return profile_id
 
 
+def get_profile(profile_id: str, db_path: Path | None = None) -> dict | None:
+    """Return a profile row by profile_id, or None if not found."""
+    with connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT * FROM profiles WHERE profile_id = ?", (profile_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
 def get_active_profile(db_path: Path | None = None) -> dict | None:
-    """Return the currently active profile row, or None if none exists."""
-    path = str(db_path if db_path is not None else get_db_path())
+    """Return only the active profile's immutable approved version."""
     try:
-        conn = sqlite3.connect(path, timeout=5)
-        conn.row_factory = sqlite3.Row
-        try:
+        with connect(db_path) as conn:
             row = conn.execute(
-                "SELECT * FROM profiles WHERE is_active = 1 ORDER BY last_used_at DESC LIMIT 1"
+                """SELECT p.profile_id, p.name, p.is_active, p.created_at,
+                          p.last_used_at, p.active_version_id,
+                          v.version_id, v.schema_version, v.revision,
+                          v.status AS version_status, v.resume_text,
+                          v.extracted_json, v.approved_at
+                   FROM profiles AS p
+                   JOIN profile_versions AS v
+                     ON v.version_id = p.active_version_id
+                   WHERE p.is_active = 1 AND v.status = 'approved'
+                   ORDER BY p.last_used_at DESC LIMIT 1"""
             ).fetchone()
             return dict(row) if row else None
-        finally:
-            conn.close()
-    except Exception:
+    except sqlite3.Error:
         return None
 
 
 def set_active_profile(profile_id: str, db_path: Path | None = None) -> bool:
-    """Switch the active profile. Returns True if the profile was found."""
+    """Activate a profile only when it has an approved active version."""
     with connect(db_path) as conn:
+        row = conn.execute(
+            """SELECT p.active_version_id FROM profiles AS p
+               JOIN profile_versions AS v ON v.version_id = p.active_version_id
+               WHERE p.profile_id = ? AND v.status = 'approved'""",
+            (profile_id,),
+        ).fetchone()
+        if not row:
+            return False
         conn.execute("UPDATE profiles SET is_active = 0")
-        cur = conn.execute(
+        conn.execute(
             "UPDATE profiles SET is_active = 1, last_used_at = ? WHERE profile_id = ?",
             (_now_iso(), profile_id),
         )
-        found = cur.rowcount > 0
-    if found:
-        try:
-            from resume.resume_profile import invalidate_candidate_cache  # noqa: PLC0415
-            invalidate_candidate_cache()
-        except Exception:
-            pass
-    return found
+    _invalidate_candidate_cache()
+    return True
 
 
 def list_profiles(db_path: Path | None = None) -> list[dict]:
-    """Return all profiles ordered by creation date descending."""
-    path = str(db_path if db_path is not None else get_db_path())
+    """List profile metadata without resume text or extracted private fields."""
     try:
-        conn = sqlite3.connect(path, timeout=5)
-        conn.row_factory = sqlite3.Row
-        try:
+        with connect(db_path) as conn:
             rows = conn.execute(
-                "SELECT profile_id, name, is_active, created_at, last_used_at "
-                "FROM profiles ORDER BY created_at DESC"
+                """SELECT profile_id, name, is_active, created_at, last_used_at,
+                          active_version_id
+                   FROM profiles ORDER BY created_at DESC"""
             ).fetchall()
-            # Never leak full resume_text in list view.
-            return [dict(r) for r in rows]
-        finally:
-            conn.close()
-    except Exception:
+            return [dict(row) for row in rows]
+    except sqlite3.Error:
         return []
 
 
-def save_extraction(profile_id: str, extracted_json: str, db_path: Path | None = None) -> None:
-    """Update the extracted_json blob for an existing profile."""
+def get_profile_versions(profile_id: str, db_path: Path | None = None) -> list[dict]:
+    """Return all versions for a profile ordered by revision ascending."""
     with connect(db_path) as conn:
+        rows = conn.execute(
+            """SELECT * FROM profile_versions
+               WHERE profile_id = ? ORDER BY revision ASC""",
+            (profile_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_active_version(profile_id: str, db_path: Path | None = None) -> dict | None:
+    """Return the active approved version for a profile, or None."""
+    with connect(db_path) as conn:
+        # First get the active_version_id from profiles
+        row = conn.execute(
+            "SELECT active_version_id FROM profiles WHERE profile_id = ?", (profile_id,)
+        ).fetchone()
+        if not row or not row["active_version_id"]:
+            return None
+        vid = row["active_version_id"]
+        row = conn.execute(
+            "SELECT * FROM profile_versions WHERE version_id = ?", (vid,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def set_active_version(profile_id: str, version_id: str, db_path: Path | None = None) -> bool:
+    """Atomically switch the active version for a profile.
+
+    Returns True if the version was found and belongs to the profile.
+    """
+    with connect(db_path) as conn:
+        # Verify version belongs to this profile and is approved
+        row = conn.execute(
+            "SELECT 1 FROM profile_versions WHERE version_id = ? AND profile_id = ? AND status = 'approved'",
+            (version_id, profile_id),
+        ).fetchone()
+        if not row:
+            return False
         conn.execute(
-            "UPDATE profiles SET extracted_json = ?, last_used_at = ? WHERE profile_id = ?",
-            (extracted_json or "{}", _now_iso(), profile_id),
+            "UPDATE profiles SET active_version_id = ? WHERE profile_id = ?",
+            (version_id, profile_id),
         )
+    return True
+
+
+def create_draft_version(
+    profile_id: str,
+    resume_text: str,
+    extracted_json: str,
+    db_path: Path | None = None,
+) -> str:
+    """Create a new draft version for a profile (next revision number).
+
+    Returns the new version_id. Does not modify any existing version.
+    """
+    with connect(db_path) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        profile = conn.execute(
+            "SELECT 1 FROM profiles WHERE profile_id = ?", (profile_id,)
+        ).fetchone()
+        if not profile:
+            raise ValueError("profile not found")
+        row = conn.execute(
+            "SELECT COALESCE(MAX(revision), 0) + 1 AS next_rev FROM profile_versions WHERE profile_id = ?",
+            (profile_id,),
+        ).fetchone()
+        next_rev = row["next_rev"] if row else 1
+        version_id = uuid.uuid4().hex
+        now = _now_iso()
+        conn.execute(
+            """INSERT INTO profile_versions
+               (version_id, profile_id, revision, schema_version, status,
+                resume_text, extracted_json, created_at)
+               VALUES (?, ?, ?, 1, 'draft', ?, ?, ?)""",
+            (version_id, profile_id, next_rev, resume_text or "", extracted_json or "{}", now),
+        )
+    return version_id
+
+
+def approve_version(
+    profile_id: str,
+    version_id: str,
+    db_path: Path | None = None,
+) -> bool:
+    """Atomically approve a draft version and activate it.
+
+    - Verifies the version belongs to the profile and is a draft.
+    - Sets status to 'approved' with approved_at timestamp.
+    - Sets profile's active_version_id to this version.
+    - Any previously approved version for this profile becomes 'superseded'.
+    - Returns True on success, False if version not found or not a draft.
+    """
+    with connect(db_path) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            """SELECT resume_text, extracted_json FROM profile_versions
+               WHERE version_id = ? AND profile_id = ? AND status = 'draft'""",
+            (version_id, profile_id),
+        ).fetchone()
+        if not row:
+            return False
+
+        now = _now_iso()
+        conn.execute(
+            """UPDATE profile_versions SET status = 'superseded'
+               WHERE profile_id = ? AND status = 'approved'""",
+            (profile_id,),
+        )
+        conn.execute(
+            """UPDATE profile_versions
+               SET status = 'approved', approved_at = ?
+               WHERE version_id = ?""",
+            (now, version_id),
+        )
+        conn.execute("UPDATE profiles SET is_active = 0")
+        conn.execute(
+            """UPDATE profiles
+               SET active_version_id = ?, resume_text = ?, extracted_json = ?,
+                   is_active = 1, last_used_at = ?
+               WHERE profile_id = ?""",
+            (
+                version_id,
+                row["resume_text"],
+                row["extracted_json"],
+                now,
+                profile_id,
+            ),
+        )
+    _invalidate_candidate_cache()
+    return True
+
+
+def save_extraction(
+    profile_id: str,
+    extracted_json: str,
+    db_path: Path | None = None,
+) -> str:
+    """Create an editable draft instead of mutating an approved snapshot."""
+    profile = get_profile(profile_id, db_path=db_path)
+    if not profile:
+        raise ValueError("profile not found")
+    return create_draft_version(
+        profile_id,
+        profile.get("resume_text") or "",
+        extracted_json or "{}",
+        db_path=db_path,
+    )
 
 
 def stats_for_profile(

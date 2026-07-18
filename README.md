@@ -21,6 +21,8 @@
 
 Opportune collects jobs from configured sources, keeps a local discovery pool, and ranks each job against your approved profile. Every recommendation includes the evidence and caution signals behind it. Your jobs, profiles, notes, and application state stay in local SQLite.
 
+Discovery contacts the public job sources you explicitly enable. Resume analysis stays on your machine when you choose built-in local analysis or a local Ollama endpoint. If you intentionally choose OpenAI, OpenRouter, or another remote-compatible provider, sanitized career text is sent to that provider after best-effort contact-detail removal. Opportune has no default analytics uploader.
+
 Status: early public alpha (`v0.1.0`).
 
 ## Why Opportune
@@ -68,7 +70,20 @@ Resume models are optional and limited to onboarding. They do not control scrapi
 
 ![Opportune onboarding welcome screen](assets/screenshots/onboarding.png)
 
-## Quickstart
+## Install and run
+
+Normal users install a built wheel and do not need Node.js or a source checkout:
+
+```bash
+uv tool install ./opportune-<version>-py3-none-any.whl
+opportune run
+```
+
+`opportune run` binds to loopback, waits for Opportune's health endpoint, and opens the browser. Use `opportune run --no-open` on a headless machine or `opportune desktop` for Chrome/Edge/Chromium app mode with browser fallback.
+
+No public GitHub Release artifact is published yet; until one is attached, the commands above apply to locally built release-candidate wheels.
+
+## Contributor quickstart
 
 Requirements:
 
@@ -86,7 +101,7 @@ npm ci
 npm run build
 cd ..
 
-uv run opp start
+uv run opportune run
 ```
 
 Open `http://127.0.0.1:8770`.
@@ -116,7 +131,7 @@ Onboarding supports:
 - a local Ollama model;
 - a custom OpenAI-compatible endpoint.
 
-Provider settings are stored locally under `tracker/onboarding/`. API keys are written to a separate file with restricted permissions and are never returned by the browser API.
+Provider settings are stored under Opportune's user data directory (`tracker/onboarding/` in a source checkout that already has `config.yaml`). API keys are written to a separate file with restricted permissions and are never returned by the browser API.
 
 Before a remote-model request, Opportune removes common email, phone, and street-address patterns. This is a best-effort filter, not a guarantee. Review your provider's privacy policy before sending resume content.
 
@@ -217,6 +232,7 @@ uv run opp schedule status --json
 # Quality and state
 uv run opp quality --json
 uv run opp audit --json
+uv run opp diagnose --json              # funnel + retained source quality; no source calls
 uv run opp jobs list --json --limit 20
 uv run opp jobs update '<job_uid>' --status watch --note 'review later' --json
 
@@ -224,7 +240,15 @@ uv run opp jobs update '<job_uid>' --status watch --note 'review later' --json
 uv run opp demo --clear --json
 uv run opp privacy export --json
 uv run opp privacy backup --json
-uv run opp privacy wipe --confirm WIPE --json
+uv run opp privacy wipe --confirm WIPE --json                    # compatibility: jobs only
+uv run opp privacy reset --confirm RESET_JOBS --json             # jobs only; profiles/config kept
+uv run opp privacy full-wipe --confirm FULL_WIPE_CONFIRMED --json
+uv run opp privacy delete-backups --confirm 'DELETE BACKUPS' --json
+
+# Optional local pilot metrics (never uploads)
+uv run opp pilot enable --consent-version 1.0 --confirm ENABLE_LOCAL_PILOT --json
+uv run opp pilot inspect --json
+uv run opp pilot delete --confirm DELETE_PILOT_METRICS --json
 ```
 
 The scheduler stores timing/status metadata in `tracker/scheduler-state.json` and uses `tracker/scheduler.lock` to prevent overlapping runs.

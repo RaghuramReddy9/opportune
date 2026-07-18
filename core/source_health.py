@@ -141,7 +141,7 @@ def record_source_failure(source: str, name: str = "", error: str = "", path: Pa
         "name": name,
         "status": category,
         "last_failure_at": now_utc().isoformat(),
-        "last_error": (error or "")[:500],
+        "last_error": "[redacted]",
         "last_error_category": category,
         "consecutive_failures": failures,
     })

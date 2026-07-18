@@ -1,0 +1,158 @@
+# Opportune Version 1 Release Scorecard
+
+**Candidate basis:** the commit containing this scorecard, prepared from `main` at `b24d49e44b5a3bf4297c3d656eb3e848dd92218b`.
+
+**Assessment date:** 2026-07-18
+
+**Current decision:** **NO-SHIP for a public Version 1 release.** The implementation and WSL artifact are substantially complete and verified, but the governed public benchmark and human pilot have not run, native Windows/macOS evidence is absent, accessibility evidence is incomplete, and no release artifact has been approved or published.
+
+## Status and evidence rules
+
+- `PASS`: the exact local gate was executed successfully on this working tree.
+- `FAIL`: a required release condition is known to be unmet.
+- `NOT RUN`: the gate requires evidence that has not been produced.
+- `WAIVED`: requires a named owner, rationale, and expiry; safety/privacy/destructive-data gates are non-waivable.
+
+Evidence classes used below:
+
+- `Verified`
+- `Partially verified`
+- `Requires runtime testing`
+- `Proposal`
+- `Not reproduced`
+
+## 1. Current local verification
+
+| Gate | Status | Evidence class | Evidence |
+|---|---|---|---|
+| Backend suite | PASS | Verified | `uv run pytest -q` → 336 passed, 5 subtests passed in 48.96s |
+| Python lint | PASS | Verified | `uv run ruff check .` → clean |
+| Diff whitespace | PASS | Verified | `git diff --check` → clean |
+| Frontend build | PASS | Verified | Vite production build, 1,778 modules |
+| Frontend lint | PASS | Verified | oxlint: 0 warnings/errors |
+| Frontend production dependency audit | PASS | Verified | `npm audit --omit=dev --audit-level=high` → 0 vulnerabilities |
+| Python runtime dependency audit | PASS | Verified | `pip-audit` → no known vulnerabilities; local `opportune` package skipped because it is not on PyPI |
+| Wheel and sdist | PASS | Verified | both rebuilt from the current tree |
+| Wheel/sdist package privacy | PASS | Verified | no `candidate_profile.yaml`, `resume.txt`, or `resume_profile.md` in either archive |
+| Installed wheel smoke | PASS | Verified | isolated venv outside checkout with `PYTHONPATH` removed; `opp`, `opportune`, `run --no-open`, readiness, health, HTML, JS, CSS, favicon |
+| Wheel SHA-256 | PASS | Verified | `11d45b6bd12256d35abde833a434a73d541dd7a94a95134d72f393221945286c` |
+| Sdist SHA-256 | PASS | Verified | `469ea52356761b40591981fd58d67d20f4d07c92225098b62b6b5bd07e2e64a6` |
+
+These checks are local evidence only. Checksums change whenever the tree is rebuilt and are not release checksums until a commit is frozen and maintainer-approved.
+
+## 2. Useful-listing and diagnosis gates
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Compact U.S. aliases normalize safely | PASS | Verified | Shared onboarding/query/guardrail tests; unknown custom values remain explicit and deterministic |
+| Existing malformed profile migration | PASS | Verified | Legacy/profile-version migration fixtures; no live approved profile was mutated |
+| Read-only canonical retained-data replay | PASS | Partially verified | 6,494 active rows → 19 role/location pool candidates after canonical U.S. interpretation |
+| Versioned discovery funnel | PASS | Verified | one schema shared by pipeline, persistence, API, CLI, and UI |
+| Actionable true-empty state | PASS | Verified | UI separates no underlying jobs from filter-hidden jobs; includes effective profile and rerun/settings actions |
+| Fresh useful live listings | NOT RUN | Requires runtime testing | No live source request was authorized during implementation |
+| Human top-5/top-10 relevance | NOT RUN | Requires runtime testing | Requires governed benchmark and pilot evidence |
+| Unsafe Ready result | NOT RUN | Requires runtime testing | Must be zero in governed final test and pilot |
+
+## 3. Installation and launch
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Normal user needs no Node/source checkout | PASS | Verified | isolated wheel serves prebuilt assets |
+| `opportune run --no-open` | PASS | Verified | installed-wheel smoke |
+| `opportune desktop` app-mode/fallback | PASS | Verified | focused launcher contracts; this is browser app-mode, not a native app |
+| Readiness and clean shutdown | PASS | Verified | bounded readiness and process lifecycle tests; browser verification server shut down cleanly |
+| Existing Opportune instance | PASS | Verified | focused launcher tests |
+| Foreign occupied port | PASS | Verified | focused launcher tests |
+| Loopback/non-loopback safety | PASS | Verified | loopback default; explicit opt-in required for non-loopback browser opening |
+| Platform-standard writable state | PASS | Partially verified | path tests and installed Linux artifact; native Windows/macOS runtime still required |
+| Native Windows/macOS launch | NOT RUN | Requires runtime testing | workflow exists but has not executed on this working tree |
+| GitHub Release/checksums | FAIL | Requires runtime testing | no maintainer-approved release object or frozen commit |
+
+## 4. Onboarding, approval, and profile versions
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Mandatory onboarding answers | PASS | Verified | compiler/service/API regressions pass |
+| Draft save/resume | PASS | Verified | durable onboarding session tests |
+| Field provenance/status metadata | PASS | Verified | value, source, evidence, confidence, status, user-modified timestamp; rejected inferred values retained as rejected |
+| User answers remain authority | PASS | Verified | focused compiler/location tests |
+| Immutable approved profile | PASS | Verified | edits create drafts; active approved snapshot remains unchanged |
+| Atomic approval/activation | PASS | Verified | transactional version tests; previous approved version becomes superseded |
+| Legacy active-profile backfill | PASS | Verified | active historical profiles become approved version 1 rather than draft |
+| Version API | PASS | Verified | list versions, create draft, approve version |
+| Approved-profile enforcement | PASS | Verified | scrape, scheduler, and catalog materialization fail closed |
+| Zero source calls without approval | PASS | Verified | explicit mocked source-network boundary test |
+| Full interactive correction UX | NOT RUN | Partially verified | backend/API contract exists; full browser editing flow has not been exercised end-to-end |
+| Onboarding completion/time | NOT RUN | Requires runtime testing | human pilot required |
+
+## 5. Benchmark and source quality
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Public benchmark validator/report code | PASS | Verified | schema, size, leakage, privacy, dual-label, metric, and segment tests |
+| Governed 320-judgment corpus | NOT RUN | Requires runtime testing | labels, adjudication, agreement, manifest, and frozen split are not fabricated |
+| Final benchmark thresholds | NOT RUN | Requires runtime testing | requires governed corpus |
+| Retained source-quality schema | PASS | Verified | bounded atomic privacy-safe history; requests/funnel/outcomes/failure categories per source |
+| Source-quality API/CLI | PASS | Verified | local read-only API and `diagnose` report; no source run triggered |
+| Inconclusive link handling | PASS | Verified | only 404/410 become confirmed dead; auth/block/rate-limit/server/TLS/network remain inconclusive |
+| Per-source latency/cost | NOT RUN | Partially verified | explicitly reported as unavailable/null because adapters do not currently emit trustworthy per-source values |
+| Retained real source report | NOT RUN | Requires runtime testing | no live source request was run during this work |
+
+## 6. Privacy and lifecycle
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Accurate local/network wording | PASS | Verified | README/security docs distinguish local private state from configured source/provider network calls |
+| Candidate artifacts absent from packages | PASS | Verified | wheel and sdist archive inspection |
+| Backup/restore integrity | PASS | Verified | SQLite-consistent backup, archive traversal/symlink/size checks, integrity check, atomic restore |
+| Reset jobs scope | PASS | Verified | clears job/catalog/run/funnel state; preserves profiles/onboarding/config; creates backup |
+| Full local wipe | PASS | Verified | clears jobs, profiles, versions, onboarding, config, exports, cache/logs, pilot/source state; creates mandatory backup |
+| Backup deletion choice | PASS | Verified | separate exact `DELETE BACKUPS` confirmation and CLI action |
+| Ordered migration | PASS | Verified | backup, integrity, rollback, idempotence, monotonic versions |
+| Legacy data relocation | PASS | Verified | dry-run, verified copy, backup, atomic rename, no-overwrite behavior |
+| Pilot metrics privacy | PASS | Verified | off by default, local, inspectable, allowlisted, redacted export, deletable, no uploader |
+| Real participant pilot | NOT RUN | Requires runtime testing | opt-in human study required |
+
+## 7. Security and accessibility
+
+| Gate | Status | Evidence class | Evidence / limitation |
+|---|---|---|---|
+| Resume traversal/symlink/upload bounds | PASS | Verified | existing security tests |
+| Restore traversal/symlink/corruption | PASS | Verified | lifecycle safety tests |
+| Package/dependency audit | PASS | Verified | archive inspection, npm audit, pip-audit |
+| Browser JavaScript/API smoke | PASS | Verified | no console or JS errors; local UI/API/assets returned successfully |
+| Semantic landmarks and keyboard CTA | PASS | Partially verified | banner/main present; Tab visible 3px focus; Enter opens onboarding |
+| Horizontal overflow at 1280px | PASS | Verified | browser inspection |
+| 320px/200% reflow | NOT RUN | Requires runtime testing | dedicated viewport/zoom matrix required |
+| Screen reader and full keyboard completion | NOT RUN | Requires runtime testing | manual assistive-technology evidence required |
+| Contrast and serious/critical a11y scan | NOT RUN | Requires runtime testing | axe/contrast tooling not executed |
+| Reduced-motion behavior | NOT RUN | Partially verified | CSS implementation exists; browser preference matrix not executed |
+
+## 8. Cross-platform and pilot matrix
+
+| Workflow | WSL/Linux | Ubuntu 22.04 | Ubuntu 24.04 | Windows | macOS 14/15 |
+|---|---|---|---|---|---|
+| Source tests/lint/build | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Wheel install/help/health/assets | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| `run`/`desktop` lifecycle | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Onboarding/approval/discovery | Partially verified | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Backup/restore/reset/wipe/migrate | PASS | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Uninstall/data retention | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+
+WSL and Docker do not substitute for native Windows or macOS evidence. The release-candidate workflow defines a native matrix but has not run against a frozen candidate.
+
+Pilot gates remain `NOT RUN`: install success, onboarding completion/time, first relevant result, top-5/top-10 relevance, repeat use, explanation trust, privacy understanding, prohibited-export count, and unsafe Ready count.
+
+## 9. Ship decision
+
+The working tree becomes eligible for a public ship decision only after:
+
+1. the exact diff is reviewed and frozen in a candidate commit;
+2. the governed benchmark corpus is labeled/adjudicated and all non-waivable thresholds pass;
+3. a real retained source-quality run and useful-listing review pass;
+4. the opt-in human pilot passes its safety, usefulness, privacy, and completion gates;
+5. native Windows/macOS workflows execute successfully before making those support claims;
+6. accessibility automation and manual keyboard/screen-reader/reflow evidence pass;
+7. maintainer review explicitly approves the artifacts and publication.
+
+**Current result: NO-SHIP for public Version 1 release.** The implementation is locally testable and substantially verified, but external evidence gates remain intentionally open.

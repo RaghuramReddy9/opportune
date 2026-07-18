@@ -100,7 +100,7 @@ class DashboardAPITests(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         text = resp.text
         self.assertNotIn(raw_key, text)
-        self.assertIn("api_key=[redacted]", text)
+        self.assertEqual(resp.json()["source_health"]["sources"]["api_serpapi"]["last_error"], "[redacted]")
         self.assertIn("access_token=[redacted]", text)
 
     def test_serves_built_frontend_assets_with_real_static_file(self):

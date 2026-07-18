@@ -54,7 +54,7 @@ The local API uses trusted-host checks and rejects cross-origin state-changing r
 
 ### Local storage
 
-Supported state is stored in `tracker/dashboard.db`, local configuration, and local backup/export files. Protect the operating-system account and filesystem that contain them.
+Installed builds store supported state in the operating system's user config/data/cache directories. A source checkout with an existing `config.yaml` preserves its configured `tracker/dashboard.db` location for backward compatibility. Protect the operating-system account and filesystem that contain the database, configuration, backups, and exports.
 
 Backups and exports may contain job-search data. Store and share them accordingly.
 
@@ -63,6 +63,8 @@ Backups and exports may contain job-search data. Store and share them accordingl
 Built-in local analysis does not send resume content to a model provider.
 
 OpenAI, OpenRouter, Ollama, and custom compatible providers are user-selected. Common contact details are removed before remote requests on a best-effort basis, but users must review the provider's privacy terms and endpoint ownership.
+
+Job discovery is separate from resume analysis: it contacts only the public job sources the user enables. Opportune does not claim that all application activity is offline merely because profiles and job state are stored locally.
 
 Provider keys are stored separately with restrictive file permissions, omitted from API responses, and ignored by Git.
 

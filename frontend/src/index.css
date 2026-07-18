@@ -267,6 +267,12 @@ body { min-width: 0; background: var(--paper); }
 .top-match-skills span { padding: 3px 5px; border-radius: 5px; background: rgba(255,255,255,.46); font-size: 8px; }
 .top-match footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 13px; border-top: 1px solid rgba(20,30,25,.12); font-size: 10px; font-weight: 750; }
 .dashboard-empty,.table-empty { grid-column: 1 / -1; display: grid; place-items: center; min-height: 150px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 12px; }
+.diagnostic-empty { grid-column: 1 / -1; display: grid; gap: 14px; min-height: 190px; padding: 22px; border: 1px dashed color-mix(in srgb,var(--green-2) 45%,var(--line)); border-radius: 16px; background: color-mix(in srgb,var(--mint) 26%,var(--surface)); }
+.diagnostic-empty-copy { display: flex; gap: 12px; align-items: flex-start; }.diagnostic-empty-copy > svg { flex: 0 0 auto; color: var(--green-2); }
+.diagnostic-empty-copy span { color: var(--green-2); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.diagnostic-empty-copy h3 { margin: 4px 0; font-size: 17px; }.diagnostic-empty-copy p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.effective-rules { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 8px; }.effective-rules span { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--surface); font-size: 10px; }.effective-rules b { display: block; margin-bottom: 3px; color: var(--ink); }
+.diagnostic-actions { display: flex; gap: 8px; }.diagnostic-actions button:not(.primary-action) { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); font-size: 11px; font-weight: 700; }
 .inline-pills { display: flex; gap: 5px; }.inline-pills span { padding: 5px 8px; border-radius: 999px; color: var(--muted); background: var(--paper); font-size: 9px; letter-spacing: 0; text-transform: none; }
 
 .review-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
@@ -349,3 +355,37 @@ body { min-width: 0; background: var(--paper); }
 .resume-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 12px; }
 .char-count.active { color: var(--green-2); font-weight: 650; }
 .resume-hint { opacity: 0.8; }
+
+:where(button,a,input,select,textarea):focus-visible { outline: 3px solid color-mix(in srgb,var(--green-2) 72%,white); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .product-shell,.product-shell.rail-collapsed { display: block; min-width: 0; }
+  .global-header { position: static; height: auto; min-height: 62px; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 12px; }
+  .global-header nav { grid-column: 1 / -1; grid-row: 2; overflow-x: auto; justify-content: center; }
+  .global-actions { flex-wrap: wrap; }
+  .guidance-rail { display: none; }
+  .product-workspace { padding: 24px 14px 48px; }
+  .top-match-grid,.stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .settings-grid,.settings-fields.two-col,.effective-rules { grid-template-columns: 1fr; }
+  .settings-card.wide { grid-column: auto; }
+  .page-heading,.section-title { align-items: flex-start; flex-direction: column; }
+  .evidence-drawer { width: min(100%, 680px); }
+}
+
+@media (max-width: 520px) {
+  .global-brand span,.profile-pill span,.settings-button svg { display: none; }
+  .global-header nav { justify-content: flex-start; }
+  .global-header nav button { padding-inline: 11px; }
+  .global-actions { justify-content: flex-end; }
+  .settings-button,.run-button { padding-inline: 9px; }
+  .top-match-grid,.stats-grid,.detail-grid { grid-template-columns: 1fr; }
+  .wide-search { grid-template-columns: auto auto minmax(0,1fr); }
+  .wide-search > svg:first-child { display: none; }
+  .filter-row,.diagnostic-actions,.drawer-score-row { align-items: stretch; flex-direction: column; }
+  .diagnostic-actions button { width: 100%; }
+  .review-table { min-width: 720px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

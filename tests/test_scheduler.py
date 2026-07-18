@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dashboard.db import create_profile, init_db, set_db_path
 from pipeline.scheduler import (
     ScheduleConfig,
     SchedulerLock,
@@ -18,10 +19,15 @@ class SchedulerTests(unittest.TestCase):
         root = Path(self.tmp.name)
         self.state_path = root / "state.json"
         self.lock_path = root / "scheduler.lock"
+        self.db_path = root / "dashboard.db"
+        init_db(self.db_path)
+        create_profile("Scheduler", "private", "{}", db_path=self.db_path)
+        set_db_path(self.db_path)
         self.now = datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc)
         self.config = ScheduleConfig(180, 360, 0, 30)
 
     def tearDown(self):
+        set_db_path(None)
         self.tmp.cleanup()
 
     def test_first_run_executes_direct_and_board_then_persists_due_times(self):

@@ -210,6 +210,22 @@ def test_config_compiler_uses_answers_as_final_authority():
     assert config["timeline"] == {"max_age_days": 7}
 
 
+def test_config_compiler_records_provenance_and_rejected_inferences():
+    answers = json.loads(json.dumps(ANSWERS))
+    answers["role_priorities"] = ["Applied AI Engineer"]
+    config = compile_search_config(ANALYSIS, answers)
+    metadata = config["_field_metadata"]
+
+    required = {"value", "source", "evidence", "confidence", "status", "user_modified_at"}
+    assert required.issubset(metadata["roles"])
+    assert metadata["roles"]["status"] == "confirmed"
+    assert metadata["roles"]["source"] == "user"
+    assert metadata["skills"]["status"] == "extracted"
+    rejected = metadata["roles"]["rejected_values"]
+    assert any(item["value"] == "LLM Applications Engineer" for item in rejected)
+    assert all(item["status"] == "rejected" for item in rejected)
+
+
 def test_config_compiler_rejects_missing_required_answers():
     incomplete = dict(ANSWERS)
     incomplete.pop("authorization")

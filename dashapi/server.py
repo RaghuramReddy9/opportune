@@ -34,17 +34,21 @@ from public_ops import (
 )
 
 from dashboard.db import (
+    approve_version,
     connect,
-
+    create_draft_version,
     get_active_profile,
     get_dashboard_model,
     get_db_path,
     get_enrichment_backlog,
     get_catalog_stats,
     get_latest_scrape_run,
+    get_profile,
+    get_profile_versions,
     init_db,
     list_jobs,
     list_profiles,
+    save_discovery_funnel,
     set_active_profile,
     set_job_action_tag,
     set_job_note,
@@ -125,6 +129,11 @@ class OnboardingAnswers(BaseModel):
     answers: dict
 
 
+class ProfileDraftRequest(BaseModel):
+    resume_text: str | None = Field(default=None, max_length=2_000_000)
+    extracted: dict
+
+
 class WipeRequest(BaseModel):
     confirm: str
 
@@ -173,7 +182,10 @@ def _redact_health_secrets(value):
     if isinstance(value, list):
         return [_redact_health_secrets(item) for item in value]
     if isinstance(value, dict):
-        return {key: _redact_health_secrets(item) for key, item in value.items()}
+        return {
+            key: "[redacted]" if key == "last_error" and item else _redact_health_secrets(item)
+            for key, item in value.items()
+        }
     return value
 
 
@@ -335,6 +347,35 @@ def api_activate_profile(profile_id: str):
     return {"ok": True, "profile_id": profile_id}
 
 
+@app.get("/api/profiles/{profile_id}/versions")
+def api_profile_versions(profile_id: str):
+    if get_profile(profile_id) is None:
+        raise HTTPException(status_code=404, detail="profile not found")
+    return {"ok": True, "versions": get_profile_versions(profile_id)}
+
+
+@app.post("/api/profiles/{profile_id}/drafts")
+def api_create_profile_draft(profile_id: str, body: ProfileDraftRequest):
+    profile = get_profile(profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="profile not found")
+    import json
+
+    version_id = create_draft_version(
+        profile_id,
+        body.resume_text if body.resume_text is not None else profile.get("resume_text", ""),
+        json.dumps(body.extracted, ensure_ascii=False),
+    )
+    return {"ok": True, "profile_id": profile_id, "version_id": version_id, "status": "draft"}
+
+
+@app.post("/api/profiles/{profile_id}/versions/{version_id}/approve")
+def api_approve_profile_version(profile_id: str, version_id: str):
+    if not approve_version(profile_id, version_id):
+        raise HTTPException(status_code=409, detail="draft version not found or already approved")
+    return {"ok": True, "profile_id": profile_id, "version_id": version_id, "status": "approved"}
+
+
 @app.post("/api/demo")
 def api_demo(clear_first: bool = False):
     return seed_demo_data(clear_first=clear_first)
@@ -421,12 +462,24 @@ def api_scrape(dry_run: bool = True):
     with connect() as conn:
         if not dry_run:
             _sync_dashboard_jobs(conn, result.get("dashboard_jobs", []))
+            # Persist discovery funnel
+            _persist_discovery_funnel(conn, result.get("discovery_funnel", {}))
         active = get_active_profile()
         model = get_dashboard_model(
             conn,
             profile_id=active["profile_id"] if active else None,
         )
-    return {"ok": True, "raw_count": result.get("raw_count", 0), "dashboard": model}
+    return {"ok": True, "raw_count": result.get("raw_count", 0), "dashboard": model, "discovery_funnel": result.get("discovery_funnel", {})}
+
+
+def _persist_discovery_funnel(conn, funnel: dict) -> None:
+    """Persist discovery funnel stages to the database."""
+    if not funnel:
+        return
+    run = get_latest_scrape_run(conn)
+    if not run:
+        return
+    save_discovery_funnel(conn, run["run_id"], funnel)
 
 
 def _sync_dashboard_jobs(conn, dashboard_jobs: list[dict]) -> None:
@@ -497,19 +550,42 @@ def api_smart_scrape(live: bool = True, min_high: int = 3):
     with connect() as conn:
         if live:
             _sync_dashboard_jobs(conn, result.get("dashboard_jobs", []))
+            # Persist discovery funnel (merged from all windows)
+            _persist_discovery_funnel(conn, result.get("discovery_funnel", {}))
         active = get_active_profile()
         model = get_dashboard_model(
             conn,
             profile_id=active["profile_id"] if active else None,
         )
+    return {"ok": True, "raw_count": result.get("raw_count", 0), "windows_run": result.get("windows_run", []), "high_apply_windows": result.get("high_apply_windows", 0), "stopped_reason": result.get("stopped_reason"), "dashboard": model, "discovery_funnel": result.get("discovery_funnel", {})}
+
+
+@app.get("/api/discovery-funnel")
+def api_discovery_funnel(run_id: str | None = None):
+    """Return discovery funnel for a specific run or the latest run."""
+    from config import get_profile_config
+
+    with connect() as conn:
+        from dashboard.db import get_discovery_funnel
+        funnel = get_discovery_funnel(conn, run_id)
+    profile = get_profile_config()
     return {
         "ok": True,
-        "raw_count": result.get("raw_count", 0),
-        "windows_run": result.get("windows_run", []),
-        "high_apply_windows": result.get("high_apply_windows", 0),
-        "stopped_reason": result.get("stopped_reason"),
-        "dashboard": model,
+        "funnel": funnel,
+        "effective_profile": {
+            "roles": profile.get("target_roles", []),
+            "locations": profile.get("locations", []),
+            "max_age_days": int((profile.get("timeline") or {}).get("max_age_days", 7)),
+        },
     }
+
+
+@app.get("/api/source-quality")
+def api_source_quality():
+    """Return retained privacy-safe per-source outcomes; never run sources."""
+    from core.source_quality import summarize_history
+
+    return {"ok": True, **summarize_history()}
 
 
 # Serve the working-tree build during development and packaged data after install.
