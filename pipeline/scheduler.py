@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Callable
 
 from config import TRACKER_DIR, load_config
+from profile_context import get_approved_profile_context
 
 DEFAULT_STATE_PATH = TRACKER_DIR / "scheduler-state.json"
 DEFAULT_LOCK_PATH = TRACKER_DIR / "scheduler.lock"
@@ -161,6 +162,8 @@ def run_scheduled_once(
     jitter_fn: Callable[[int], int] | None = None,
 ) -> dict:
     """Run every due task once and persist its next due time."""
+    # Fail-closed: no active approved profile → stop before any source work
+    get_approved_profile_context()  # raises ProfileApprovalRequired if no active profile
     current = (now or _utc_now()).astimezone(timezone.utc)
     settings = schedule or load_schedule_config()
     runner = scrape_runner or _default_runner

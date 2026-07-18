@@ -290,6 +290,65 @@ def cmd_quality(args):
         raise SystemExit(1)
 
 
+def cmd_run(args):
+    from desktop_launcher import run_server_with_browser_launch
+    host = args.host or cfg.DASHBOARD_HOST
+    port = args.port or cfg.DASHBOARD_PORT
+    result = run_server_with_browser_launch(
+        host=host,
+        port=port,
+        no_open=args.no_open,
+        browser=args.browser,
+        allow_non_loopback=args.allow_non_loopback,
+    )
+    _dump(result, args.json)
+    if not result.get("ok"):
+        raise SystemExit(1)
+
+
+def cmd_desktop(args):
+    from desktop_launcher import launch_desktop_app_mode
+    host = args.host or cfg.DASHBOARD_HOST
+    port = args.port or cfg.DASHBOARD_PORT
+    result = launch_desktop_app_mode(
+        host=host,
+        port=port,
+        no_open=args.no_open,
+        allow_non_loopback=args.allow_non_loopback,
+    )
+    _dump(result, args.json)
+    if not result.get("ok"):
+        raise SystemExit(1)
+
+
+def cmd_diagnose(args):
+    """Explain the latest local discovery funnel without running sources."""
+    from dashboard.db import connect, get_discovery_funnel, init_db
+    from core.source_quality import summarize_history
+    from pipeline.funnel import first_zero_stage
+
+    init_db()
+    with connect() as conn:
+        funnel = get_discovery_funnel(conn)
+    first_zero = first_zero_stage(funnel) if funnel else None
+    profile = cfg.get_profile_config()
+    _dump(
+        {
+            "ok": True,
+            "first_zero_stage": first_zero,
+            "stage": funnel.get("stages", {}).get(first_zero, {}) if first_zero else {},
+            "effective_profile": {
+                "roles": profile.get("target_roles", []),
+                "locations": profile.get("locations", []),
+                "max_age_days": int((profile.get("timeline") or {}).get("max_age_days", 7)),
+            },
+            "funnel": funnel,
+            "source_quality": summarize_history(),
+        },
+        args.json,
+    )
+
+
 def cmd_dashboard(args):
     from dashapi.server import run
     host = args.host or cfg.DASHBOARD_HOST
@@ -359,7 +418,14 @@ def cmd_demo(args):
 
 
 def cmd_privacy(args):
-    from public_ops import backup_local_state, export_data, wipe_local_data
+    from public_ops import (
+        backup_local_state,
+        delete_backups,
+        export_data,
+        full_wipe,
+        reset_jobs,
+        wipe_local_data,
+    )
 
     if args.action == "export":
         _dump({"ok": True, "path": str(export_data())}, args.json)
@@ -367,8 +433,47 @@ def cmd_privacy(args):
         _dump({"ok": True, "path": str(backup_local_state())}, args.json)
     elif args.action == "wipe":
         _dump(wipe_local_data(args.confirm), args.json)
+    elif args.action == "reset":
+        _dump(reset_jobs(args.confirm), args.json)
+    elif args.action == "full-wipe":
+        _dump(full_wipe(args.confirm), args.json)
+    elif args.action == "delete-backups":
+        _dump(delete_backups(args.confirm), args.json)
     else:
         raise SystemExit("unknown privacy action")
+
+
+def cmd_pilot(args):
+    """Manage explicit local pilot metrics; this command never uploads data."""
+    from datetime import datetime, timezone
+
+    from pilot_metrics import PilotStore
+
+    store = PilotStore(cfg.JOB_AGENT_HOME / "pilot_metrics.db")
+    if args.action == "enable":
+        if args.confirm != "ENABLE_LOCAL_PILOT":
+            raise SystemExit("pilot enable requires --confirm ENABLE_LOCAL_PILOT")
+        session_id = store.enable(consent_version=args.consent_version)
+        result = {"ok": True, "enabled": True, "session_id": session_id}
+    elif args.action == "inspect":
+        result = {"ok": True, **store.inspect()}
+    elif args.action == "export":
+        cfg.EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        path = cfg.EXPORT_DIR / f"opportune-pilot-{stamp}.json"
+        path.write_text(json.dumps(store.export(), indent=2), encoding="utf-8")
+        result = {"ok": True, "path": str(path)}
+    elif args.action == "disable":
+        store.disable()
+        result = {"ok": True, "enabled": False}
+    elif args.action == "delete":
+        if args.confirm != "DELETE_PILOT_METRICS":
+            raise SystemExit("pilot delete requires --confirm DELETE_PILOT_METRICS")
+        store.delete()
+        result = {"ok": True, "deleted": True}
+    else:
+        raise SystemExit("unknown pilot action")
+    _dump(result, args.json)
 
 
 def cmd_links(args):
@@ -467,6 +572,31 @@ def build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--port", type=int, default=None)
     pd.set_defaults(func=cmd_dashboard)
 
+    pr = sub.add_parser(
+        "run",
+        help="start the dashboard server, wait for health, and open default browser",
+    )
+    pr.add_argument("--host", default=None)
+    pr.add_argument("--port", type=int, default=None)
+    pr.add_argument("--no-open", action="store_true", help="do not open browser after server ready")
+    pr.add_argument("--browser", default=None, help="specific browser to open (e.g., chrome, firefox)")
+    pr.add_argument("--allow-non-loopback", action="store_true", help="allow binding to non-loopback hosts (0.0.0.0, etc.)")
+    pr.set_defaults(func=cmd_run)
+
+    pdt = sub.add_parser(
+        "desktop",
+        help="start the dashboard and open in Chrome/Edge/Chromium app mode (maximized); fallback to default browser",
+    )
+    pdt.add_argument("--host", default=None)
+    pdt.add_argument("--port", type=int, default=None)
+    pdt.add_argument("--no-open", action="store_true", help="start server only, do not launch app window")
+    pdt.add_argument("--allow-non-loopback", action="store_true", help="allow binding to non-loopback hosts (0.0.0.0, etc.)")
+    pdt.set_defaults(func=cmd_desktop)
+
+    pdiag = sub.add_parser("diagnose", help="explain where the latest discovery run stopped")
+    pdiag.add_argument("--json", action="store_true", help="emit JSON")
+    pdiag.set_defaults(func=cmd_diagnose)
+
     pa = sub.add_parser("audit", help="pipeline health check")
     pa.add_argument("--json", action="store_true", help="emit JSON")
     pa.set_defaults(func=cmd_audit)
@@ -500,11 +630,25 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--clear", action="store_true", help="clear existing jobs first")
     demo.set_defaults(func=cmd_demo)
 
-    priv = sub.add_parser("privacy", help="export, backup, or wipe local data")
+    priv = sub.add_parser("privacy", help="export, backup, reset, or wipe local data")
     priv.add_argument("--json", action="store_true", help="emit JSON")
-    priv.add_argument("action", choices=["export", "backup", "wipe"])
-    priv.add_argument("--confirm", default="", help="required value WIPE for privacy wipe")
+    priv.add_argument(
+        "action",
+        choices=["export", "backup", "wipe", "reset", "full-wipe", "delete-backups"],
+    )
+    priv.add_argument(
+        "--confirm",
+        default="",
+        help="exact confirmation required for destructive actions",
+    )
     priv.set_defaults(func=cmd_privacy)
+
+    pilot = sub.add_parser("pilot", help="manage opt-in local pilot metrics")
+    pilot.add_argument("--json", action="store_true", help="emit JSON")
+    pilot.add_argument("action", choices=["enable", "inspect", "export", "disable", "delete"])
+    pilot.add_argument("--consent-version", default="1.0")
+    pilot.add_argument("--confirm", default="")
+    pilot.set_defaults(func=cmd_pilot)
 
     links = sub.add_parser("links", help="verify stored job apply URLs")
     links.add_argument(

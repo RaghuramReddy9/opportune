@@ -254,16 +254,14 @@ def location_verdict(job: dict) -> dict:
     loc = (location or "").strip().lower()
     trusted_location_sources = DIRECT_ATS_SOURCES - {"ycombinator"}
     from config import get_profile_config
+    from core.location_normalization import normalize_location_preferences
 
-    preferred_locations = [
-        str(value).strip().lower()
-        for value in get_profile_config().get("locations", [])
-        if str(value).strip()
-    ]
+    normalized_preferences = normalize_location_preferences(
+        get_profile_config().get("locations", [])
+    )
+    preferred_locations = [item["display"].lower() for item in normalized_preferences]
     uses_us_policy = not preferred_locations or any(
-        value in {"us", "u.s.", "usa", "united state", "united states", "remote us", "remote usa"}
-        or value.startswith("united state")
-        for value in preferred_locations
+        item["code"] in {"US", "REMOTE_US"} for item in normalized_preferences
     )
 
     if not loc:

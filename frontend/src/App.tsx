@@ -30,7 +30,7 @@ import {
   UserCircle,
   Briefcase,
 } from 'lucide-react';
-import { api, type Job, type DashboardModel, type AppConfig, type SystemHealth, type QualityReport, type ProfileInfo } from './api';
+import { api, type Job, type DashboardModel, type AppConfig, type SystemHealth, type QualityReport, type ProfileInfo, type DiscoveryFunnel, type EffectiveSearchRules } from './api';
 import OnboardingWizard from './onboarding/OnboardingWizard';
 import type { OnboardingStatus } from './onboarding/types';
 
@@ -357,14 +357,47 @@ function ReviewTable({ jobs, onSelect }: { jobs: Job[]; onSelect: (job: Job) => 
 
 function EvidenceDrawer({ job, onClose, onAction }: { job: Job; onClose: () => void; onAction: (uid: string, action: string) => void }) {
   const reasons = normalizeReasons(job.apply_window_reasons);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    closeButton.current?.focus();
+    const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => { window.removeEventListener('keydown', handleKey); previousFocus?.focus(); };
+  }, [onClose]);
   return <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><aside className="evidence-drawer" role="dialog" aria-modal="true" aria-label={`Review ${job.title}`}>
-    <header><div><span className="drawer-eyebrow">Why this job was suggested</span><h2>{job.title}</h2><p>{job.company} · {job.location || 'Location unverified'}</p></div><button type="button" onClick={onClose} aria-label="Close review"><X size={18} /></button></header>
+    <header><div><span className="drawer-eyebrow">Why this job was suggested</span><h2>{job.title}</h2><p>{job.company} · {job.location || 'Location unverified'}</p></div><button ref={closeButton} type="button" onClick={onClose} aria-label="Close review"><X size={18} /></button></header>
     <div className="drawer-score-row"><div className={`drawer-score ${scoreTone(job.resume_match_score)}`}><b>{job.resume_match_score}%</b><span>resume match</span></div><div><b>Apply timing: {job.apply_window_label || 'medium'}</b><span>{job.apply_window_next_action || 'Review before taking action'}</span></div></div>
     <section><h3>Why it matches</h3><p>{(job.why_matches || 'No explanation stored yet.').replace(/\*\*/g, '')}</p><div className="drawer-skills">{(job.matched_keywords ?? []).map((skill) => <span key={skill}>{skill}</span>)}</div></section>
     <section className="risk-section"><h3>What to check</h3><p>{(job.why_risky || 'Nothing obvious is blocking this match. Check the original listing before applying.').replace(/\*\*/g, '')}</p>{reasons.map((reason) => <div className="reason-line" key={reason}><CheckCircle2 size={14} /> {reason}</div>)}</section>
     <section className="evidence-grid"><div><span>Source</span><b>{job.source || 'Unknown'}</b></div><div><span>Posted</span><b>{job.posted_date || 'Not provided'}</b></div><div><span>Work mode</span><b>{(job.work_mode || 'unknown').replace(/_/g, ' ')}</b></div><div><span>Experience</span><b>{(job.experience_level || 'unknown').replace(/_/g, ' ')}</b></div><div><span>First found</span><b>{formatMoment(job.first_seen_at || job.date_discovered)}</b></div><div><span>Last checked</span><b>{formatMoment(job.last_seen_at || job.date_updated)}</b></div><div><span>Listing status</span><b>{job.listing_state || 'active'}</b></div><div><span>Link status</span><b>{job.link_status || 'not checked'}</b></div></section>
     <footer>{job.apply_url && !['dead', 'unreachable'].includes(job.link_status || '') ? <a className="primary-action" href={job.apply_url} target="_blank" rel="noreferrer">Open original listing <ExternalLink size={14} /></a> : <span className="disabled-action">Original listing unavailable</span>}<button className="success-action" type="button" onClick={() => onAction(job.job_uid, 'applied')}><Check size={14} /> Mark applied</button><button className="danger-action" type="button" onClick={() => onAction(job.job_uid, 'rejected')}><X size={14} /> Dismiss</button></footer>
   </aside></div>;
+}
+
+const funnelDiagnosis: Record<string, { title: string; detail: string; action: 'sources' | 'profile' }> = {
+  tasks: { title: 'No job sources are enabled.', detail: 'Turn on at least one company-site or job-board source.', action: 'sources' },
+  requests: { title: 'Sources could not be reached.', detail: 'Review disabled sources, connection failures, and source health.', action: 'sources' },
+  raw: { title: 'Sources returned no listings.', detail: 'Try another source or broaden the approved role and location rules.', action: 'sources' },
+  normalized: { title: 'Listings could not be normalized.', detail: 'The source responses did not contain usable listing URLs.', action: 'sources' },
+  location: { title: 'Location rules removed every listing.', detail: 'Review the approved locations and remote-work preference.', action: 'profile' },
+  acquisition: { title: 'No listing matched the approved search.', detail: 'Review roles and locations; Opportune will not broaden them silently.', action: 'profile' },
+  ranking: { title: 'No listing reached ranking.', detail: 'Review the approved role and experience rules.', action: 'profile' },
+  freshness: { title: 'Freshness rules removed every listing.', detail: 'Review the maximum listing age in your search profile.', action: 'profile' },
+  link: { title: 'No listing has a usable application link.', detail: 'Source links may be missing or need another verification pass.', action: 'sources' },
+  persistence: { title: 'No listing was saved.', detail: 'Review local storage health and the preceding funnel stage.', action: 'sources' },
+  dashboard: { title: 'Saved listings did not reach the dashboard.', detail: 'Review lifecycle and bucket reasons below.', action: 'profile' },
+};
+
+function DiscoveryEmptyState({ funnel, rules, onRun, onSettings }: { funnel: DiscoveryFunnel | null; rules: EffectiveSearchRules | null; onRun: () => void; onSettings: () => void }) {
+  const order = ['tasks', 'requests', 'raw', 'normalized', 'location', 'acquisition', 'ranking', 'freshness', 'link', 'lifecycle', 'buckets', 'persistence', 'dashboard'];
+  const firstZero = order.find((stage) => funnel?.stages?.[stage]?.count === 0);
+  const diagnosis = firstZero ? funnelDiagnosis[firstZero] : null;
+  return <div className="diagnostic-empty" role="status">
+    <div className="diagnostic-empty-copy"><Activity size={20} /><div><span>{firstZero ? `Discovery stopped at ${firstZero}` : 'No discovery run recorded'}</span><h3>{diagnosis?.title || 'Run discovery to build your local job pool.'}</h3><p>{diagnosis?.detail || 'Opportune will show where listings stop and what to change.'}</p></div></div>
+    {rules && <div className="effective-rules"><span><b>Roles</b>{rules.roles.join(', ') || 'Not configured'}</span><span><b>Locations</b>{rules.locations.join(', ') || 'Not configured'}</span><span><b>Freshness</b>{rules.max_age_days} days</span></div>}
+    <div className="diagnostic-actions"><button type="button" className="primary-action" onClick={onRun}>Run discovery</button><button type="button" onClick={diagnosis?.action === 'sources' ? onSettings : () => window.location.assign('/onboarding')}>{diagnosis?.action === 'sources' ? 'Review sources' : 'Edit search profile'}</button></div>
+  </div>;
 }
 
 export default function App() {
@@ -376,6 +409,8 @@ export default function App() {
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [quality, setQuality] = useState<QualityReport | null>(null);
+  const [funnel, setFunnel] = useState<DiscoveryFunnel | null>(null);
+  const [effectiveRules, setEffectiveRules] = useState<EffectiveSearchRules | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
@@ -394,12 +429,13 @@ export default function App() {
 
   const loadData = useCallback(async () => {
     try {
-      const [dashboard, system, ranking, profilesRes, onboardingRes] = await Promise.all([
+      const [dashboard, system, ranking, profilesRes, onboardingRes, funnelRes] = await Promise.all([
         api.dashboard(),
         api.health(),
         api.quality(),
         api.listProfiles().catch(() => ({ ok: false, profiles: [] as ProfileInfo[] })),
         api.onboarding(),
+        api.discoveryFunnel().catch(() => null),
       ]);
       setData(dashboard);
       setHealth(system);
@@ -408,6 +444,10 @@ export default function App() {
         setProfiles(profilesRes.profiles);
       }
       setOnboarding(onboardingRes);
+      if (funnelRes) {
+        setFunnel('version' in funnelRes.funnel ? funnelRes.funnel as DiscoveryFunnel : null);
+        setEffectiveRules(funnelRes.effective_profile);
+      }
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
     finally { setLoading(false); }
@@ -449,7 +489,7 @@ export default function App() {
   const nextDirect = (health?.scheduler?.state?.direct as { next_run_at?: string } | undefined)?.next_run_at;
   const nextBoard = (health?.scheduler?.state?.board as { next_run_at?: string } | undefined)?.next_run_at;
 
-  async function runScrape() { setScraping(true); addLog('Looking for new jobs…'); try { const result = await api.scrape(false); addLog(`Checked ${result.raw_count} jobs`); await loadData(); setView('discover'); } catch (err) { addLog(`ERROR: ${err instanceof Error ? err.message : String(err)}`); } finally { setScraping(false); } }
+  async function runScrape() { setScraping(true); addLog('Looking for new jobs…'); try { const result = await api.scrape(false); setFunnel(result.discovery_funnel); addLog(`Checked ${result.raw_count} jobs`); await loadData(); setView('discover'); } catch (err) { addLog(`ERROR: ${err instanceof Error ? err.message : String(err)}`); } finally { setScraping(false); } }
   async function handleAction(uid: string, action: string) { try { await api.setStatus(uid, action); addLog(`Job marked ${action.replace('_', ' ')}`); setSelectedJob(null); await loadData(); } catch (err) { addLog(`ERROR: ${err instanceof Error ? err.message : String(err)}`); } }
   async function handleActivateProfile(id: string) {
     try {
@@ -499,7 +539,7 @@ export default function App() {
     </aside>
     <main className="product-workspace">
       {error && <div className="error-banner"><XCircle size={16} /> {error}</div>}
-      {view === 'dashboard' && <><section className="page-heading"><div><span className="page-eyebrow">Good {greeting}{candidateName ? `, ${candidateName}` : ''}</span><h1>Your job search, under control.</h1><p>Opportune searches across your roles and locations, then brings the jobs that best match your experience to the top.</p>{data?.profile && <div className="profile-stat-bar"><span className="profile-stat-badge"><Briefcase size={12} /> {data.profile.name}</span><span className="profile-stat-badge success"><CheckCircle2 size={12} /> {data.profile.applied} applied / {data.profile.in_pipeline} in progress</span></div>}</div><div className="heading-stat"><b>{data?.stats.total ?? 0}</b><span>saved jobs</span></div></section><section className="top-section"><div className="section-title"><div><span>Best matches</span><h2>Start with the jobs that fit your experience best</h2></div><button onClick={() => setView('discover')}>Browse all <ChevronRight size={14} /></button></div><div className="top-match-grid">{topJobs.map((job) => <TopMatch job={job} key={job.job_uid} onSelect={setSelectedJob} />)}{!topJobs.length && <div className="dashboard-empty">Run discovery to find jobs for your search.</div>}</div></section><section className="applications-section"><div className="section-title"><div><span>Saved jobs</span><h2>All jobs in your search</h2></div><div className="inline-pills"><span>{counts.pool} saved</span><span>{counts.apply_now} ready</span><span>{counts.watch} to review</span><span>{counts.active_pipeline} in progress</span></div></div><ReviewTable jobs={reviewJobs} onSelect={setSelectedJob} /></section></>}
+      {view === 'dashboard' && <><section className="page-heading"><div><span className="page-eyebrow">Good {greeting}{candidateName ? `, ${candidateName}` : ''}</span><h1>Your job search, under control.</h1><p>Opportune searches across your roles and locations, then brings the jobs that best match your experience to the top.</p>{data?.profile && <div className="profile-stat-bar"><span className="profile-stat-badge"><Briefcase size={12} /> {data.profile.name}</span><span className="profile-stat-badge success"><CheckCircle2 size={12} /> {data.profile.applied} applied / {data.profile.in_pipeline} in progress</span></div>}</div><div className="heading-stat"><b>{data?.stats.total ?? 0}</b><span>saved jobs</span></div></section><section className="top-section"><div className="section-title"><div><span>Best matches</span><h2>Start with the jobs that fit your experience best</h2></div><button onClick={() => setView('discover')}>Browse all <ChevronRight size={14} /></button></div><div className="top-match-grid">{topJobs.map((job) => <TopMatch job={job} key={job.job_uid} onSelect={setSelectedJob} />)}{!topJobs.length && <DiscoveryEmptyState funnel={funnel} rules={effectiveRules} onRun={runScrape} onSettings={() => setView('settings')} />}</div></section><section className="applications-section"><div className="section-title"><div><span>Saved jobs</span><h2>All jobs in your search</h2></div><div className="inline-pills"><span>{counts.pool} saved</span><span>{counts.apply_now} ready</span><span>{counts.watch} to review</span><span>{counts.active_pipeline} in progress</span></div></div><ReviewTable jobs={reviewJobs} onSelect={setSelectedJob} /></section></>}
       {(view === 'discover' || view === 'review') && <>
         <section className="browse-heading">
           <span className="page-eyebrow">{view === 'review' ? 'Needs your review' : 'Discover'}</span>
@@ -555,7 +595,7 @@ export default function App() {
         </section>
         <BucketTabs active={view === 'review' && bucket === 'all' ? 'watch' : bucket} counts={counts} onChange={(next) => setBucket(next)} />
         <div className="discover-summary"><span>{visibleJobs.length} opportunities</span><button type="button" onClick={() => { setQuery(''); setSourceFilter('all'); setMinScore(0); setFreshnessFilter('all'); setWorkModeFilter('all'); setExperienceFilter('all'); setVisaFilter('all'); setApplicationFilter('not_applied'); }}><RotateCcw size={13} /> Clear filters</button></div>
-        <section className="job-card-grid">{loading ? <div className="dashboard-empty"><RotateCcw className="spin" /> Loading local jobs…</div> : visibleJobs.map((job) => <JobCard job={job} key={job.job_uid} onAction={handleAction} onSelect={setSelectedJob} />)}{!loading && !visibleJobs.length && <div className="dashboard-empty">No jobs match these filters.</div>}</section>
+        <section className="job-card-grid">{loading ? <div className="dashboard-empty"><RotateCcw className="spin" /> Loading local jobs…</div> : visibleJobs.map((job) => <JobCard job={job} key={job.job_uid} onAction={handleAction} onSelect={setSelectedJob} />)}{!loading && !visibleJobs.length && (uniqueJobs.length ? <div className="dashboard-empty">No jobs match these filters.</div> : <DiscoveryEmptyState funnel={funnel} rules={effectiveRules} onRun={runScrape} onSettings={() => setView('settings')} />)}</section>
       </>}
       {view === 'settings' && <><section className="page-heading settings-heading"><div><span className="page-eyebrow">Settings</span><h1>Shape your search.</h1><p>Update your profile, choose job sources, and manage the data saved on this device.</p></div></section><SettingsPanel onLog={addLog} onReload={loadData} /></>}
     </main>

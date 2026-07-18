@@ -17,6 +17,8 @@ from typing import Any
 import yaml
 from dotenv import load_dotenv
 
+from core.paths import resolve_app_paths, resolve_runtime_paths
+
 # --- Project root & .env ---
 PROJECT_ROOT = Path(__file__).resolve().parent
 _LOCAL_ENV = PROJECT_ROOT / ".env"
@@ -24,7 +26,14 @@ if _LOCAL_ENV.exists():
     load_dotenv(_LOCAL_ENV, override=False)
 
 # --- Config file (single source of truth) ---
-CONFIG_PATH = PROJECT_ROOT / "config.yaml"
+_APP_PATHS = resolve_app_paths()
+_PROJECT_CONFIG_PATH = PROJECT_ROOT / "config.yaml"
+CONFIG_PATH = Path(
+    os.getenv(
+        "OPPORTUNE_CONFIG_PATH",
+        str(_PROJECT_CONFIG_PATH if _PROJECT_CONFIG_PATH.exists() else _APP_PATHS.config_dir / "config.yaml"),
+    )
+).expanduser()
 _PROJECT_CONFIG_EXAMPLE = PROJECT_ROOT / "config.example.yaml"
 _INSTALLED_CONFIG_EXAMPLE = Path(sys.prefix) / "config.example.yaml"
 CONFIG_EXAMPLE_PATH = _PROJECT_CONFIG_EXAMPLE if _PROJECT_CONFIG_EXAMPLE.exists() else _INSTALLED_CONFIG_EXAMPLE
@@ -140,15 +149,23 @@ SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY", os.getenv("SERPAPI_KEY", ""))
 # --- Storage (local-first) ---
 _STORAGE = _cfg_get("storage", default={}) or {}
 DEFAULT_HOME = "tracker"
-JOB_AGENT_HOME = Path(os.getenv("JOB_AGENT_HOME", _STORAGE.get("home", DEFAULT_HOME))).expanduser()
-if not JOB_AGENT_HOME.is_absolute():
-    JOB_AGENT_HOME = PROJECT_ROOT / JOB_AGENT_HOME
+_RUNTIME_PATHS = resolve_runtime_paths(
+    project_root=PROJECT_ROOT,
+    project_config_exists=CONFIG_PATH == _PROJECT_CONFIG_PATH and _PROJECT_CONFIG_PATH.exists(),
+    storage_home=_STORAGE.get("home", DEFAULT_HOME),
+)
+JOB_AGENT_HOME = _RUNTIME_PATHS.data_dir
 DB_FILENAME = _STORAGE.get("sqlite_file", "dashboard.db")
 JOB_DB_PATH = Path(os.getenv("JOB_DB_PATH", str(JOB_AGENT_HOME / DB_FILENAME))).expanduser()
 TRACKER_DIR = JOB_DB_PATH.parent
 DASHBOARD_DB_PATH = Path(
     os.getenv("DASHBOARD_DB_PATH", str(TRACKER_DIR / DB_FILENAME))
 ).expanduser()
+CONFIG_DIR = CONFIG_PATH.parent
+CACHE_DIR = _RUNTIME_PATHS.cache_dir
+LOG_DIR = _RUNTIME_PATHS.logs
+EXPORT_DIR = _RUNTIME_PATHS.exports
+BACKUP_DIR = _RUNTIME_PATHS.backups
 
 # --- Dashboard ---
 _DASH = _cfg_get("dashboard", default={}) or {}

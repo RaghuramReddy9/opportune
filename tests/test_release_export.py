@@ -25,6 +25,12 @@ class ReleaseExportTests(unittest.TestCase):
             self.assertTrue((destination / "profile/skills.example.yaml").is_file())
             self.assertTrue((destination / "frontend/dist/index.html").is_file())
             self.assertTrue((destination / "assets/screenshots/dashboard.png").is_file())
+            self.assertTrue((destination / "desktop_launcher.py").is_file())
+            self.assertTrue((destination / "profile_context.py").is_file())
+            self.assertTrue((destination / "pilot_metrics.py").is_file())
+            self.assertTrue((destination / "benchmarks/report.py").is_file())
+            self.assertTrue((destination / "scripts/smoke_installed.py").is_file())
+            self.assertTrue((destination / "RELEASE_SCORECARD.md").is_file())
 
             for forbidden in (
                 "tracker",

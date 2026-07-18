@@ -23,4 +23,4 @@ Before finishing:
 4. Never commit `.env`, `config.yaml`, `tracker/*.db`, resume uploads, reports, exports, backups, `.release/`, `.hermes/`, or `.memory/`.
 
 Public-release rule:
-Do not make the dirty-history private repo public. Publish from a clean single-commit release repo/branch only after maintainer approval.
+Use a feature branch and protected pull request for the canonical public repository. Do not tag or publish a release until the evidence gates in `PUBLIC_RELEASE.md` and `RELEASE_SCORECARD.md` pass and the maintainer explicitly approves it.

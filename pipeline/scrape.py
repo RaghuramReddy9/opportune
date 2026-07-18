@@ -21,7 +21,9 @@ from ranking.guardrails import apply_freshness_trust, freshness_sort_rank
 from ranking.eligibility import evaluate_ready_to_apply
 from ranking.targeting import classify_role_families, classify_target_level
 from core.http import sanitize_url
+from pipeline.funnel import new_funnel, record_stage
 from pipeline.query_strategy import get_default_query_corpus
+from profile_context import get_approved_profile_context
 
 logger = logging.getLogger("pipeline.scrape")
 
@@ -30,6 +32,7 @@ def _log_event(event: str, **fields: Any) -> None:
     """Structured JSON-ish log event for cron parseability."""
     payload = {"event": event, **fields}
     logger.info("%s", json.dumps(payload, ensure_ascii=False))
+
 
 _MAX_SOURCE_RETRIES = 3
 _SOURCE_RETRY_BASE_DELAY = 1.0
@@ -683,17 +686,25 @@ def scrape_all(
     Returns:
         dict with jobs, raw_count, source_results, failed_sources, etc.
     """
+    approved_context = get_approved_profile_context()
     scrape_started = time.monotonic()
     _log_event("scrape_start", window=run_window, dry_run=dry_run, max_workers=max_workers)
     from config import get_profile_config
 
     profile_config = get_profile_config()
     max_age_days = int((profile_config.get("timeline") or {}).get("max_age_days", 7))
-    # Stamp every scraped job with the active profile so dedup + stats are
-    # per-user, not global. Falls back to '' when no profile is active.
-    from dashboard.db import get_active_profile  # noqa: PLC0415
+    active_profile_id = approved_context.profile_id
+    # Initialize discovery funnel
+    funnel = new_funnel()
+    def _record(stage: str, count: int, reason_codes: dict[str, int] | None = None, by_source: dict[str, int] | None = None) -> None:
+        record_stage(
+            funnel,
+            stage,
+            count,
+            reason_codes=reason_codes,
+            by_source=by_source,
+        )
 
-    active_profile_id = (get_active_profile() or {}).get("profile_id", "")
     result = {
         "jobs": [],
         "pool_jobs": [],
@@ -705,6 +716,7 @@ def scrape_all(
         "apify_runs": 0,
         "timings_seconds": {},
         "catalog": {"mode": "dry_run" if dry_run else "pending"},
+        "discovery_funnel": funnel,
     }
 
     all_raw_jobs = []
@@ -779,6 +791,13 @@ def scrape_all(
     else:
         logger.info("Apify budget exhausted for today")
 
+    # Record tasks stage
+    task_sources: dict[str, int] = {}
+    for task in tasks:
+        source_key = task[0]
+        task_sources[source_key] = task_sources.get(source_key, 0) + 1
+    _record("tasks", len(tasks), by_source=task_sources)
+
     # ── Execute all tasks in parallel ──
     logger.info("Launching %d tasks with %d workers (timeout=%ds)...",
                 len(tasks), max_workers, _MAX_SCRAPE_SECONDS)
@@ -792,6 +811,16 @@ def scrape_all(
     result["failed_sources"].extend(timed_out)
     result["skipped_sources"].extend(skipped)
     result["timings_seconds"]["sources"] = round(time.monotonic() - source_started, 3)
+
+    # Record requests stage (completed + failed + skipped)
+    request_sources: dict[str, int] = {}
+    for source_key, name, _ in completed_tasks:
+        request_sources[source_key] = request_sources.get(source_key, 0) + 1
+    for fail in timed_out:
+        request_sources[fail["source"]] = request_sources.get(fail["source"], 0) + 1
+    for skip in skipped:
+        request_sources[skip["source"]] = request_sources.get(skip["source"], 0) + 1
+    _record("requests", len(completed_tasks) + len(timed_out) + len(skipped), by_source=request_sources)
 
     if not dry_run:
         try:
@@ -840,6 +869,19 @@ def scrape_all(
     logger.info("Parallel scrape complete: %d raw jobs from %d sources",
                 len(all_raw_jobs), len(result["source_results"]))
 
+    # Record raw stage (after collecting all jobs from sources)
+    raw_sources: dict[str, int] = {}
+    for source_key, count in result["source_results"].items():
+        raw_sources[source_key] = count
+    _record("raw", len(all_raw_jobs), by_source=raw_sources)
+
+    # Record normalized stage (after URL sanitization and dedup)
+    normalized_sources: dict[str, int] = {}
+    for job in all_raw_jobs:
+        src = job.get("source", "unknown")
+        normalized_sources[src] = normalized_sources.get(src, 0) + 1
+    _record("normalized", len(all_raw_jobs), by_source=normalized_sources)
+
     # ── Strict geo gate for board/curated/API sources ──
     # Direct-company ATS jobs are trusted (curated U.S. firm list). Board sources
     # (YC, Simplify, Wellfound, JSearch, Adzuna, SerpApi) return globally and
@@ -850,6 +892,13 @@ def scrape_all(
     geo_dropped = geo_before - len(all_raw_jobs)
     if geo_dropped:
         logger.info("Geo gate dropped %d non-U.S./ambiguous-location jobs", geo_dropped)
+
+    # Record geo stage
+    geo_sources: dict[str, int] = {}
+    for job in all_raw_jobs:
+        src = job.get("source", "unknown")
+        geo_sources[src] = geo_sources.get(src, 0) + 1
+    _record("location", len(all_raw_jobs), reason_codes={"dropped": geo_dropped}, by_source=geo_sources)
 
     # Minimal acquisition happens before strict ranking: configured role title
     # plus verified location only. Every matching row is retained locally so
@@ -867,6 +916,18 @@ def scrape_all(
         "Broad discovery pool: %d role+location matches from %d source rows",
         len(pool_jobs),
         len(all_raw_jobs),
+    )
+
+    # Record acquisition stage (configured role plus location preference).
+    role_sources: dict[str, int] = {}
+    for job in pool_jobs:
+        src = job.get("source", "unknown")
+        role_sources[src] = role_sources.get(src, 0) + 1
+    _record(
+        "acquisition",
+        len(pool_jobs),
+        reason_codes={"filtered": max(0, len(all_raw_jobs) - len(pool_jobs))},
+        by_source=role_sources,
     )
 
     # ── ATS discovery for unknown companies ──
@@ -890,6 +951,13 @@ def scrape_all(
     )
     logger.info("After ranking: %d jobs", len(ranked_jobs))
 
+    # Record ranking stage
+    ranking_sources: dict[str, int] = {}
+    for job in ranked_jobs:
+        src = job.get("source", "unknown")
+        ranking_sources[src] = ranking_sources.get(src, 0) + 1
+    _record("ranking", len(ranked_jobs), by_source=ranking_sources)
+
     # ── Freshness-prioritized selection ──
     # Historical jobs are deliberately re-ranked instead of discarded. The
     # incremental catalog owns deduplication and lifecycle state; this lets a
@@ -909,6 +977,14 @@ def scrape_all(
         non_duplicate_jobs.append(job)
 
     logger.info("Filtered out %d jobs older than configured %d-day timeline", filtered_by_age_count, max_age_days)
+
+    # Record freshness stage
+    freshness_sources: dict[str, int] = {}
+    freshness_reasons: dict[str, int] = {"too_old": filtered_by_age_count}
+    for job in non_duplicate_jobs:
+        src = job.get("source", "unknown")
+        freshness_sources[src] = freshness_sources.get(src, 0) + 1
+    _record("freshness", len(non_duplicate_jobs), reason_codes=freshness_reasons, by_source=freshness_sources)
 
     # Sort non-duplicates by Priority, trusted freshness, source confidence, then match score.
     non_duplicate_jobs.sort(key=lambda j: (
@@ -1037,6 +1113,60 @@ def scrape_all(
     result["eligibility_excluded"] = eligibility_excluded
     result["eligibility_excluded_count"] = len(eligibility_excluded)
     result["timings_seconds"]["total"] = round(time.monotonic() - scrape_started, 3)
+
+    # Record link stage (jobs with verified links)
+    link_sources: dict[str, int] = {}
+    link_reasons: dict[str, int] = {}
+    for job in result["dashboard_jobs"]:
+        src = job.get("source", "unknown")
+        link_sources[src] = link_sources.get(src, 0) + 1
+        link_status = job.get("link_status", "unknown")
+        link_reasons[link_status] = link_reasons.get(link_status, 0) + 1
+    _record("link", len(result["dashboard_jobs"]), reason_codes=link_reasons, by_source=link_sources)
+
+    # Record lifecycle stage (listing_state breakdown)
+    lifecycle_sources: dict[str, int] = {}
+    lifecycle_reasons: dict[str, int] = {}
+    for job in result["dashboard_jobs"]:
+        src = job.get("source", "unknown")
+        lifecycle_sources[src] = lifecycle_sources.get(src, 0) + 1
+        state = job.get("listing_state", "active")
+        lifecycle_reasons[state] = lifecycle_reasons.get(state, 0) + 1
+    _record("lifecycle", len(result["dashboard_jobs"]), reason_codes=lifecycle_reasons, by_source=lifecycle_sources)
+
+    # Record buckets stage (action_tag breakdown)
+    buckets_sources: dict[str, int] = {}
+    buckets_reasons: dict[str, int] = {}
+    for job in result["dashboard_jobs"]:
+        src = job.get("source", "unknown")
+        buckets_sources[src] = buckets_sources.get(src, 0) + 1
+        bucket = job.get("action_tag", "watch")
+        buckets_reasons[bucket] = buckets_reasons.get(bucket, 0) + 1
+    _record("buckets", len(result["dashboard_jobs"]), reason_codes=buckets_reasons, by_source=buckets_sources)
+
+    # Record persistence stage (jobs that will be persisted)
+    persistence_sources: dict[str, int] = {}
+    for job in result["dashboard_jobs"]:
+        src = job.get("source", "unknown")
+        persistence_sources[src] = persistence_sources.get(src, 0) + 1
+    _record("persistence", len(result["dashboard_jobs"]), by_source=persistence_sources)
+
+    # Record dashboard stage
+    dashboard_sources: dict[str, int] = {}
+    for job in result["dashboard_jobs"]:
+        src = job.get("source", "unknown")
+        dashboard_sources[src] = dashboard_sources.get(src, 0) + 1
+    _record("dashboard", len(result["dashboard_jobs"]), by_source=dashboard_sources)
+
+    # Attach funnel to result for API exposure
+    result["discovery_funnel"] = funnel
+    if not dry_run:
+        try:
+            from core.source_quality import record_result
+
+            result["source_quality_path"] = str(record_result(result))
+        except Exception as exc:
+            logger.warning("Could not retain source-quality report: %s", exc)
 
     freshness_counts = {}
     for j in selected:

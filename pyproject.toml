@@ -64,11 +64,12 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-include-package-data = true
-py-modules = ["config", "jobhunt", "public_ops"]
+include-package-data = false
+py-modules = ["config", "desktop_launcher", "jobhunt", "pilot_metrics", "profile_context", "public_ops"]
 [tool.setuptools.packages.find]
 include = [
     "adapters*",
+    "benchmarks*",
     "core*",
     "dashboard*",
     "dashapi*",
@@ -79,9 +80,8 @@ include = [
 ]
 
 [tool.setuptools.data-files]
-"." = ["config.example.yaml", "candidate_profile.yaml", "source_registry.yaml"]
+"." = ["config.example.yaml", "source_registry.yaml"]
 "data" = ["data/skill_taxonomy.yaml"]
-"resume" = ["resume/resume.txt", "resume/resume_profile.md"]
 "profile" = ["profile/availability.yaml", "profile/skills.example.yaml"]
 "frontend/dist" = ["frontend/dist/index.html", "frontend/dist/favicon.svg", "frontend/dist/icons.svg"]
 "frontend/dist/assets" = ["frontend/dist/assets/*.css", "frontend/dist/assets/*.js"]
@@ -94,4 +94,5 @@ dev = [
     "httpx2>=2.5,<3",
     "pytest>=9.1.1,<10",
     "ruff>=0.15,<1",
+    "tomli>=2.0,<3; python_version < '3.11'",
 ]

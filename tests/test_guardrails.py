@@ -499,7 +499,8 @@ class GuardrailTests(unittest.TestCase):
             captured.append([job["company"] for job in candidates])
             return 0
 
-        with patch("pipeline.scrape.load_registry", return_value=[]), \
+        with patch("pipeline.scrape.get_approved_profile_context", return_value=type("Context", (), {"profile_id": "test"})()), \
+             patch("pipeline.scrape.load_registry", return_value=[]), \
              patch("pipeline.scrape.get_enabled_companies", return_value=[]), \
              patch("pipeline.scrape.get_companies_by_ats", return_value=[]), \
              patch("pipeline.scrape.get_unknown_ats_companies", return_value=[]), \

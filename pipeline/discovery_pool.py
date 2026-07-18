@@ -15,6 +15,7 @@ import re
 from collections.abc import Iterable
 
 from config import get_profile_config
+from profile_context import get_approved_profile_context
 from ranking.guardrails import apply_freshness_trust, location_verdict
 from ranking.score import rank_job
 
@@ -203,6 +204,7 @@ def build_discovery_pool(jobs: Iterable[dict], roles: Iterable[str] | None = Non
 
 def materialize_catalog_pool(conn) -> dict[str, int]:
     """Rebuild broad-pool rows from active catalog payloads without scraping."""
+    get_approved_profile_context(connection=conn)
     from dashboard.db import upsert_scraped_job
     from ranking.guardrails import detect_visa_sponsorship
 

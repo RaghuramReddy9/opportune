@@ -32,6 +32,16 @@ class PublicV1APITests(unittest.TestCase):
             got = self.client.get("/api/config")
             self.assertEqual(got.json()["config"]["profile"]["timeline"]["max_age_days"], 3)
 
+    def test_config_write_creates_platform_parent_directory(self):
+        from public_ops import save_config
+
+        target = self.tmp_path / "platform" / "config" / "config.yaml"
+        with patch("public_ops.cfg.CONFIG_PATH", target):
+            result = save_config({"profile": {}, "sources": []})
+
+        self.assertTrue(target.is_file())
+        self.assertEqual(Path(result["path"]), target)
+
     def test_config_validation_rejects_invalid_timeline(self):
         from public_ops import save_config
 

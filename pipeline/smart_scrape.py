@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from pipeline.funnel import merge_funnels
 from pipeline.scrape import scrape_all
 from ranking.apply_window import annotate_apply_window
 
@@ -40,6 +41,7 @@ def smart_scrape(*, live: bool = False, min_high: int = 3, max_selected: int = 1
         "stopped_reason": "windows_exhausted",
     }
     seen: set[str] = set()
+    window_funnels: list[dict] = []
 
     for window in windows:
         result = scrape_all(max_selected=max_selected, dry_run=not live, run_window=window)
@@ -57,8 +59,16 @@ def smart_scrape(*, live: bool = False, min_high: int = 3, max_selected: int = 1
             aggregate["dashboard_jobs"].append(job)
 
         aggregate["high_apply_windows"] = _high_count(aggregate["dashboard_jobs"])
+
+        window_funnel = result.get("discovery_funnel", {})
+        if window_funnel:
+            window_funnels.append(window_funnel)
+
         if aggregate["high_apply_windows"] >= min_high:
             aggregate["stopped_reason"] = "enough_high_apply_windows"
             break
+
+    # Attach merged funnel
+    aggregate["discovery_funnel"] = merge_funnels(window_funnels)
 
     return aggregate

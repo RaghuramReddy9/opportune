@@ -61,16 +61,16 @@ def get_query_set(window: str | None = None) -> list[str]:
     from config import get_profile_config
 
     profile = get_profile_config()
+    from core.location_normalization import normalize_location_preferences
+
     roles = [str(role).strip() for role in profile.get("target_roles", []) if str(role).strip()]
     if not roles:
         return list(_FALLBACK_QUERIES[selected_window])
-    locations = [str(value).strip() for value in profile.get("locations", []) if str(value).strip()]
-    uses_us = not locations or any(
-        value.lower() in {"us", "u.s.", "usa", "united state", "united states", "remote us", "remote usa"}
-        or value.lower().startswith("united state")
-        for value in locations
+    normalized_locations = normalize_location_preferences(profile.get("locations", []))
+    uses_us = not normalized_locations or any(
+        item["code"] in {"US", "REMOTE_US"} for item in normalized_locations
     )
-    location = "United States" if uses_us else locations[0]
+    location = "United States" if uses_us else normalized_locations[0]["display"]
     window_index = ("morning", "afternoon", "evening").index(selected_window)
     count = min(3, len(roles))
     start = window_index * count

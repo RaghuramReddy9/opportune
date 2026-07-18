@@ -41,6 +41,21 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(record["last_error_category"], "rate_limited")
             self.assertTrue(record["circuit_open_until"])
 
+    def test_failure_state_never_persists_raw_provider_error_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source_health.json"
+            raw_secret = "provider-secret-value"
+            record = record_source_failure(
+                "api_serpapi",
+                "api_serpapi",
+                f"HTTP 401 response leaked {raw_secret}",
+                path=path,
+            )
+
+            self.assertNotIn(raw_secret, path.read_text(encoding="utf-8"))
+            self.assertEqual(record["last_error"], "[redacted]")
+            self.assertEqual(record["last_error_category"], "failed")
+
     def test_success_clears_open_circuit(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "source_health.json"

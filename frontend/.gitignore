@@ -8,7 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+# Production assets are packaged in the Python wheel and intentionally versioned.
+!dist/
+!dist/**
 dist-ssr
 *.local
 
