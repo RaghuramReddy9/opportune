@@ -303,6 +303,10 @@ def init_db(db_path: Path | None = None) -> None:
             CREATE INDEX IF NOT EXISTS idx_onboarding_updated ON onboarding_sessions(updated_at);
             """
         )
+        # SCHEMA is the authoritative idempotent table/index definition. Existing
+        # databases need column repair first because its indexes reference newer
+        # jobs columns; after that, replaying it safely creates every missing table.
+        conn.executescript(SCHEMA)
         # Older seeded rows predate the explicit is_demo flag.
         conn.execute(
             "UPDATE jobs SET is_demo = 1 WHERE source = 'sample_data' AND is_demo = 0"

@@ -272,6 +272,30 @@ class DashboardDBTests(unittest.TestCase):
         self.assertIn("enrichment_queue", tables)
         self.assertEqual(is_demo, 1)
 
+    def test_init_db_upgrades_existing_db_with_discovery_funnel_without_losing_jobs(self):
+        legacy = Path(self.tmp.name) / "legacy_funnel.db"
+        raw = sqlite3.connect(legacy)
+        raw.execute(
+            "CREATE TABLE jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "job_uid TEXT UNIQUE NOT NULL, company TEXT NOT NULL, title TEXT NOT NULL)"
+        )
+        raw.execute(
+            "INSERT INTO jobs (job_uid, company, title) VALUES (?, ?, ?)",
+            ("existing-job", "Existing Co", "AI Engineer"),
+        )
+        raw.commit()
+        raw.close()
+
+        init_db(legacy)
+
+        with connect(legacy) as conn:
+            has_funnel = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='discovery_funnel'"
+            ).fetchone()
+            job_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+        self.assertIsNotNone(has_funnel)
+        self.assertEqual(job_count, 1)
+
     def test_make_job_uid_stable(self):
         job = self._sample_job()
         self.assertEqual(make_job_uid(job), make_job_uid(dict(job)))
