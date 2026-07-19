@@ -72,7 +72,34 @@ Resume models are optional and limited to onboarding. They do not control scrapi
 
 ## Install and run
 
-Normal users install a built wheel and do not need Node.js or a source checkout:
+### Easiest install
+
+These commands work from any folder. They download Opportune into `~/opportune`,
+prepare its Python environment, and start the dashboard. They do not require
+Node.js because the published source already contains the built frontend.
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/RaghuramReddy9/opportune/main/scripts/install.ps1 | iex
+```
+
+Ubuntu, macOS, or another Bash shell:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RaghuramReddy9/opportune/main/scripts/install.sh | bash
+```
+
+Git is required for both installers. The scripts install `uv` automatically
+when it is missing; they do not install Git itself.
+
+The installer uses the `main` branch. It is safe to run again for updates when
+the checkout has no uncommitted changes. To install somewhere else, set
+`OPPORTUNE_DIR` before running it. To install without starting the dashboard,
+set `OPPORTUNE_NO_RUN=1`.
+
+For a stable user installation, use a published GitHub Release wheel when one
+is available:
 
 ```bash
 uv tool install ./opportune-<version>-py3-none-any.whl
@@ -81,7 +108,8 @@ opportune run
 
 `opportune run` binds to loopback, waits for Opportune's health endpoint, and opens the browser. Use `opportune run --no-open` on a headless machine or `opportune desktop` for Chrome/Edge/Chromium app mode with browser fallback.
 
-No public GitHub Release artifact is published yet; until one is attached, the commands above apply to locally built release-candidate wheels.
+Until a public wheel is attached to a GitHub Release, use the one-command source
+installer above or build the wheel locally with `uv build`.
 
 ### Updates
 
@@ -102,28 +130,89 @@ uv tool install --force ./opportune-<version>-py3-none-any.whl
 
 Merged code does not notify users by itself. Maintainers must publish a versioned GitHub Release, such as `v0.1.1`, after its release gates pass.
 
-## Contributor quickstart
+## Developer setup from a clone
+
+Use this path when you want to edit the source code.
 
 Requirements:
 
-- Python 3.10 or newer
+- Git
 - [uv](https://docs.astral.sh/uv/)
-- Node.js 20 or newer for frontend development/builds
+- Python 3.12 is selected automatically as the tested default. Python 3.10
+  remains supported by CI.
+- Node.js 20 or newer only when changing or rebuilding the frontend.
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/RaghuramReddy9/opportune.git
+cd opportune
+$env:UV_LINK_MODE = "copy"
+uv sync --frozen --link-mode copy
+uv run opportune run
+```
+
+Ubuntu or macOS:
 
 ```bash
 git clone https://github.com/RaghuramReddy9/opportune.git
 cd opportune
-uv sync
+uv sync --frozen
+uv run opportune run
+```
 
+To prepare the existing clone with the same installer logic instead, point the
+installer at the current directory and disable automatic startup:
+
+```powershell
+$env:OPPORTUNE_DIR = (Get-Location).Path
+$env:OPPORTUNE_NO_RUN = "1"
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+```bash
+OPPORTUNE_DIR="$PWD" OPPORTUNE_NO_RUN=1 bash scripts/install.sh
+```
+
+Only frontend contributors need the additional build step:
+
+```bash
 cd frontend
 npm ci
 npm run build
 cd ..
-
-uv run opportune run
 ```
 
 Open `http://127.0.0.1:8770`.
+
+### Windows error: incompatible hardlinks
+
+If Windows shows `os error 396` or says:
+
+```text
+The cloud operation cannot be performed on a file with incompatible hardlinks
+```
+
+the dependency download succeeded, but Windows refused the way `uv` tried to
+link a cached package into `.venv`. This is common with OneDrive or other
+cloud-managed folders. It is not a problem with `annotated-types`.
+
+Run:
+
+```powershell
+$env:UV_LINK_MODE = "copy"
+uv sync --frozen --link-mode copy
+```
+
+If the same cached file is still affected, clear only uv's disposable cache and
+try again:
+
+```powershell
+uv cache clean
+uv sync --frozen --link-mode copy
+```
+
+The installer script already uses copy mode automatically on Windows.
 
 ### First-run setup
 
