@@ -72,44 +72,41 @@ Resume models are optional and limited to onboarding. They do not control scrapi
 
 ## Install and run
 
-### Easiest install
+### Stable install
 
-These commands work from any folder. They download Opportune into `~/opportune`,
-prepare its Python environment, and start the dashboard. They do not require
-Node.js because the published source already contains the built frontend.
+After the `v0.1.1` release is published, the tag-pinned installers download its
+wheel and `SHA256SUMS`, verify the wheel, install it with `uv tool`, and start
+the local dashboard. Normal users do not need Git, Node.js, or npm.
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/RaghuramReddy9/opportune/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/RaghuramReddy9/opportune/v0.1.1/scripts/install.ps1 | iex
 ```
 
 Ubuntu, macOS, or another Bash shell:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RaghuramReddy9/opportune/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/RaghuramReddy9/opportune/v0.1.1/scripts/install.sh | bash
 ```
 
-Git is required for both installers. The scripts install `uv` automatically
-when it is missing; they do not install Git itself.
-
-The installer uses the `main` branch. It is safe to run again for updates when
-the checkout has no uncommitted changes. To install somewhere else, set
-`OPPORTUNE_DIR` before running it. To install without starting the dashboard,
-set `OPPORTUNE_NO_RUN=1`.
-
-For a stable user installation, use a published GitHub Release wheel when one
-is available:
+For a review-first installation, download the appropriate tag-pinned script,
+inspect it locally, and then execute it. For example:
 
 ```bash
-uv tool install ./opportune-<version>-py3-none-any.whl
-opportune run
+curl -fLO https://raw.githubusercontent.com/RaghuramReddy9/opportune/v0.1.1/scripts/install.sh
+less install.sh
+bash install.sh
 ```
 
-`opportune run` binds to loopback, waits for Opportune's health endpoint, and opens the browser. Use `opportune run --no-open` on a headless machine or `opportune desktop` for Chrome/Edge/Chromium app mode with browser fallback.
+Set `OPPORTUNE_NO_RUN=1` to install without launching. Set
+`OPPORTUNE_VERSION` only to select another reviewed immutable release. Before
+`v0.1.1` publication, use the developer setup below; the stable installer
+intentionally fails when signed-off release artifacts do not exist.
 
-Until a public wheel is attached to a GitHub Release, use the one-command source
-installer above or build the wheel locally with `uv build`.
+`opportune run` binds to loopback, waits for Opportune's health endpoint, and
+opens the browser. Use `opportune run --no-open` on a headless machine or
+`opportune desktop` for Chrome/Edge/Chromium app mode with browser fallback.
 
 ### Updates
 
@@ -128,7 +125,8 @@ opportune privacy backup --json
 uv tool install --force ./opportune-<version>-py3-none-any.whl
 ```
 
-Merged code does not notify users by itself. Maintainers must publish a versioned GitHub Release, such as `v0.1.1`, after its release gates pass.
+Merged code does not notify users by itself. Maintainers must publish a
+versioned GitHub Release after every release gate passes.
 
 ## Developer setup from a clone
 
