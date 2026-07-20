@@ -499,10 +499,14 @@ class TestScrapeStampsProfileId:
                 {
                     "roles": ["ai engineer"],
                     "skills": ["python"],
+                    "target_levels": ["entry_level"],
                     "locations": ["United States", "Remote"],
                     "experience_level": "entry_level",
                     "visa_needed": True,
                     "work_modes": ["remote"],
+                    "work_focuses": ["applied_ai"],
+                    "visa_policy": "needs_sponsorship",
+                    "timeline": {"max_age_days": 7},
                 }
             ),
         )

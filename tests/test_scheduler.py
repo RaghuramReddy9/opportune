@@ -21,7 +21,7 @@ class SchedulerTests(unittest.TestCase):
         self.lock_path = root / "scheduler.lock"
         self.db_path = root / "dashboard.db"
         init_db(self.db_path)
-        create_profile("Scheduler", "private", "{}", db_path=self.db_path)
+        create_profile("Scheduler", "private", json.dumps({"roles": ["AI Engineer"], "target_levels": ["entry_level"], "locations": ["United States"], "work_modes": ["remote"], "work_focuses": ["applied_ai"], "visa_policy": "none", "timeline": {"max_age_days": 7}}), db_path=self.db_path)
         set_db_path(self.db_path)
         self.now = datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc)
         self.config = ScheduleConfig(180, 360, 0, 30)
