@@ -1,8 +1,8 @@
 # Opportune Version 1 Release Scorecard
 
-**Candidate basis:** the commit containing this scorecard, prepared from `main` at `b24d49e44b5a3bf4297c3d656eb3e848dd92218b`.
+**Candidate basis:** the commit containing this scorecard on `codex/v1-1-release-consolidation`, prepared from `main` at `3171b287ff788a268f58fb99526e7b87dafed1e9`.
 
-**Assessment date:** 2026-07-18
+**Assessment date:** 2026-07-20
 
 **Current decision:** **NO-SHIP for a public Version 1 release.** The implementation and automated native-OS candidate matrix are verified, but the governed public benchmark and human pilot have not run, accessibility evidence is incomplete, and no release artifact has been approved or published.
 
@@ -25,7 +25,7 @@ Evidence classes used below:
 
 | Gate | Status | Evidence class | Evidence |
 |---|---|---|---|
-| Backend suite | PASS | Verified | `uv run pytest -q` → 336 passed, 5 subtests passed in 48.96s |
+| Backend suite | PASS | Verified | `uv run python -m pytest tests -q` → 355 passed, 5 subtests passed in 60.19s |
 | Python lint | PASS | Verified | `uv run ruff check .` → clean |
 | Diff whitespace | PASS | Verified | `git diff --check` → clean |
 | Frontend build | PASS | Verified | Vite production build, 1,778 modules |
@@ -34,7 +34,7 @@ Evidence classes used below:
 | Python runtime dependency audit | PASS | Verified | `pip-audit` → no known vulnerabilities; local `opportune` package skipped because it is not on PyPI |
 | Wheel and sdist | PASS | Verified | both rebuilt from the current tree |
 | Wheel/sdist package privacy | PASS | Verified | no `candidate_profile.yaml`, `resume.txt`, or `resume_profile.md` in either archive |
-| Installed wheel smoke | PASS | Verified | isolated venv outside checkout with `PYTHONPATH` removed; `opp`, `opportune`, `run --no-open`, readiness, health, HTML, JS, CSS, favicon |
+| Installed wheel smoke | PASS | Verified | isolated uv environment outside checkout; CLI aliases, server readiness, health, HTML/assets, doctor, backup, export, and clean shutdown |
 | Artifact checksums | PASS | Verified | generated for every local/native candidate build and retained with that build's artifacts; no source-controlled hash is labeled as a release checksum |
 
 These checks are local evidence only. Checksums change whenever the tree is rebuilt and are not release checksums until a commit is frozen and maintainer-approved.
@@ -65,7 +65,7 @@ These checks are local evidence only. Checksums change whenever the tree is rebu
 | Loopback/non-loopback safety | PASS | Verified | loopback default; explicit opt-in required for non-loopback browser opening |
 | Platform-standard writable state | PASS | Verified | path/lifecycle tests and installed-artifact smoke passed on Linux, Windows 2022, and macOS 14/15 |
 | Native Windows/macOS launch | PASS | Verified | `run --no-open`, readiness, health, assets, and clean shutdown passed in the release-candidate matrix |
-| GitHub Release/checksums | FAIL | Requires runtime testing | no maintainer-approved release object or frozen commit |
+| GitHub Release/checksums | FAIL | Requires runtime testing | local wheel, sdist, SHA256SUMS, and manifest pass; no maintainer-approved release object exists |
 
 ## 4. Onboarding, approval, and profile versions
 
@@ -103,11 +103,11 @@ These checks are local evidence only. Checksums change whenever the tree is rebu
 |---|---|---|---|
 | Accurate local/network wording | PASS | Verified | README/security docs distinguish local private state from configured source/provider network calls |
 | Candidate artifacts absent from packages | PASS | Verified | wheel and sdist archive inspection |
-| Backup/restore integrity | PASS | Verified | SQLite-consistent backup, archive traversal/symlink/size checks, integrity check, atomic restore |
+| Backup/restore integrity | PASS | Verified | SQLite-consistent snapshot plus config/provider settings and secret round-trip; archive traversal/symlink/size checks and atomic restore |
 | Reset jobs scope | PASS | Verified | clears job/catalog/run/funnel state; preserves profiles/onboarding/config; creates backup |
-| Full local wipe | PASS | Verified | clears jobs, profiles, versions, onboarding, config, exports, cache/logs, pilot/source state; creates mandatory backup |
+| Full local wipe | PASS | Verified | clears jobs, profiles, versions, provider settings/secrets, config, exports, cache/logs, pilot/source state; creates mandatory backup |
 | Backup deletion choice | PASS | Verified | separate exact `DELETE BACKUPS` confirmation and CLI action |
-| Ordered migration | PASS | Verified | backup, integrity, rollback, idempotence, monotonic versions |
+| Ordered migration | PASS | Verified | production startup wiring, version 1 backup, representative legacy-row preservation, rollback, idempotence, and future-version rejection |
 | Legacy data relocation | PASS | Verified | dry-run, verified copy, backup, atomic rename, no-overwrite behavior |
 | Pilot metrics privacy | PASS | Verified | off by default, local, inspectable, allowlisted, redacted export, deletable, no uploader |
 | Real participant pilot | NOT RUN | Requires runtime testing | opt-in human study required |
