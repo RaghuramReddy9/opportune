@@ -240,6 +240,7 @@ def restore_local_state(archive_path: Path, *, confirm: str) -> dict[str, Any]:
             if archive.testzip() is not None:
                 raise ValueError("backup archive is corrupt")
             db_members = []
+            restorable_members: dict[str, bytes] = {}
             total_size = 0
             for info in archive.infolist():
                 member = Path(info.filename)
@@ -251,6 +252,10 @@ def restore_local_state(archive_path: Path, *, confirm: str) -> dict[str, Any]:
                     raise ValueError("backup archive is too large")
                 if len(member.parts) == 2 and member.parts[0] == "tracker" and member.suffix == ".db":
                     db_members.append(info)
+                if member == Path("config.yaml") or (
+                    member.parts and member.parts[0] == "onboarding"
+                ):
+                    restorable_members[info.filename] = archive.read(info)
             if len(db_members) != 1:
                 raise ValueError("backup archive must contain exactly one tracker database")
             candidate.write_bytes(archive.read(db_members[0]))
@@ -268,6 +273,18 @@ def restore_local_state(archive_path: Path, *, confirm: str) -> dict[str, Any]:
         primary_db.with_name(primary_db.name + "-wal").unlink(missing_ok=True)
         primary_db.with_name(primary_db.name + "-shm").unlink(missing_ok=True)
 
+        for member_name, contents in restorable_members.items():
+            member = Path(member_name)
+            target = (
+                cfg.CONFIG_PATH
+                if member == Path("config.yaml")
+                else cfg.JOB_AGENT_HOME / member
+            )
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_name(target.name + ".restore")
+            temporary.write_bytes(contents)
+            temporary.chmod(0o600)
+            temporary.replace(target)
     return {
         "ok": True,
         "restored_path": str(primary_db),
@@ -306,6 +323,14 @@ def backup_local_state() -> Path:
             if cfg.CONFIG_PATH.exists():
                 z.write(cfg.CONFIG_PATH, "config.yaml")
 
+            onboarding_dir = cfg.JOB_AGENT_HOME / "onboarding"
+            if onboarding_dir.exists():
+                for private_path in sorted(onboarding_dir.rglob("*")):
+                    if private_path.is_symlink():
+                        raise RuntimeError("provider state contains an unsafe symlink")
+                    if private_path.is_file():
+                        relative = private_path.relative_to(onboarding_dir)
+                        z.write(private_path, Path("onboarding") / relative)
     with zipfile.ZipFile(path) as z:
         bad_member = z.testzip()
         if bad_member:
@@ -377,7 +402,7 @@ def full_wipe(confirm: str) -> dict[str, Any]:
         cfg.JOB_AGENT_HOME / "scheduler.lock",
     ):
         private_file.unlink(missing_ok=True)
-    for private_dir in (cfg.CACHE_DIR, cfg.LOG_DIR, cfg.EXPORT_DIR):
+    for private_dir in (cfg.JOB_AGENT_HOME / "onboarding", cfg.CACHE_DIR, cfg.LOG_DIR, cfg.EXPORT_DIR):
         if private_dir.exists():
             shutil.rmtree(private_dir)
 

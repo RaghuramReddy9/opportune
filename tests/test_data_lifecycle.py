@@ -109,6 +109,8 @@ def test_full_wipe_removes_private_state_but_preserves_mandatory_backup_and_defa
     config_path.write_text("profile: {}\n", encoding="utf-8")
     (data / "pilot_metrics.db").write_text("private", encoding="utf-8")
     (data / "source_health.json").write_text("{}", encoding="utf-8")
+    (data / "onboarding").mkdir()
+    (data / "onboarding" / "llm.key").write_text("provider-secret", encoding="utf-8")
     (cache / "private.cache").write_text("private", encoding="utf-8")
     (data / "exports" / "private.json").write_text("private", encoding="utf-8")
     default = tmp_path / "config.example.yaml"
@@ -141,6 +143,7 @@ def test_full_wipe_removes_private_state_but_preserves_mandatory_backup_and_defa
     assert not cache.exists()
     assert not (data / "exports").exists()
     assert not (data / "pilot_metrics.db").exists()
+    assert not (data / "onboarding").exists()
     with connect() as connection:
         for table in ("jobs", "profiles", "profile_versions", "onboarding_sessions"):
             assert connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0] == 0
