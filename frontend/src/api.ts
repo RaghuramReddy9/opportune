@@ -184,7 +184,7 @@ export const api = {
     body.append('file', file);
     return jsonFetch<OnboardingSession>('/onboarding/upload', { method: 'POST', body });
   },
-  submitOnboardingAnswers: (sessionId: string, answers: OnboardingAnswers) => jsonFetch<OnboardingSession>(`/onboarding/${encodeURIComponent(sessionId)}/answers`, { method: 'POST', body: JSON.stringify({ answers }) }),
+  submitOnboardingAnswers: (sessionId: string, answers: OnboardingAnswers, revision: number) => jsonFetch<OnboardingSession>(`/onboarding/${encodeURIComponent(sessionId)}/answers`, { method: 'POST', body: JSON.stringify({ answers, revision }) }),
   approveOnboarding: (sessionId: string) => jsonFetch<OnboardingSession>(`/onboarding/${encodeURIComponent(sessionId)}/approve`, { method: 'POST' }),
   listProfiles: () => jsonFetch<{ ok: boolean; profiles: ProfileInfo[] }>('/profiles'),
   activateProfile: (profileId: string) => jsonFetch<{ ok: boolean; profile_id: string }>(`/profiles/${encodeURIComponent(profileId)}/activate`, { method: 'POST' }),

@@ -374,3 +374,31 @@ def test_scrape_api_is_blocked_until_profile_is_approved(tmp_path):
 
     assert response.status_code == 409
     assert "Complete onboarding" in response.text
+
+
+def test_onboarding_revision_rejects_stale_write(tmp_path):
+    from onboarding.store import OnboardingRevisionConflict, OnboardingStore
+
+    store = OnboardingStore(tmp_path / "revision.db")
+    session = store.create(
+        filename="resume.txt",
+        resume_text="private",
+        provider="local",
+        analysis={},
+        questions=[],
+    )
+    first = store.save_answers(
+        session["session_id"],
+        {"role_priorities": ["AI Engineer"]},
+        {"roles": ["AI Engineer"]},
+        session["revision"],
+    )
+    assert first["revision"] == session["revision"] + 1
+    with pytest.raises(OnboardingRevisionConflict, match="Reload"):
+        store.save_answers(
+            session["session_id"],
+            {"role_priorities": ["Stale Role"]},
+            {"roles": ["Stale Role"]},
+            session["revision"],
+        )
+    assert store.get(session["session_id"])["answers"]["role_priorities"] == ["AI Engineer"]

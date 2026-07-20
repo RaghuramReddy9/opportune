@@ -521,7 +521,7 @@ export default function OnboardingWizard({ initialStatus, onComplete }: Props) {
     setBusy(true);
     setError('');
     try {
-      const result = await api.submitOnboardingAnswers(session.session_id, answers);
+      const result = await api.submitOnboardingAnswers(session.session_id, answers, session.revision);
       setSession(result);
       setStage('review');
     } catch (err) {

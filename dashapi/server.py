@@ -67,6 +67,7 @@ from onboarding.providers import (
 )
 from onboarding.resume_reader import extract_resume_text
 from onboarding.service import OnboardingService
+from onboarding.store import OnboardingRevisionConflict
 
 
 @asynccontextmanager
@@ -128,6 +129,7 @@ class ProviderUpdate(BaseModel):
 
 class OnboardingAnswers(BaseModel):
     answers: dict
+    revision: int = Field(default=1, ge=1)
 
 
 class ProfileDraftRequest(BaseModel):
@@ -326,7 +328,9 @@ async def api_upload_onboarding_resume(file: UploadFile = File(...)):
 @app.post("/api/onboarding/{session_id}/answers")
 def api_submit_onboarding_answers(session_id: str, body: OnboardingAnswers):
     try:
-        return OnboardingService().submit_answers(session_id, body.answers)
+        return OnboardingService().submit_answers(session_id, body.answers, body.revision)
+    except OnboardingRevisionConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

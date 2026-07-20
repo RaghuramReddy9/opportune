@@ -41,10 +41,10 @@ class OnboardingService:
             questions=questions,
         )
 
-    def submit_answers(self, session_id: str, answers: dict) -> dict:
+    def submit_answers(self, session_id: str, answers: dict, revision: int | None = None) -> dict:
         session = self.store.get(session_id)
         final_config = compile_search_config(session["analysis"], answers)
-        return self.store.save_answers(session_id, answers, final_config)
+        return self.store.save_answers(session_id, answers, final_config, revision or session["revision"])
 
     def approve(self, session_id: str) -> dict:
         session = self.store.get(session_id, include_resume=True)

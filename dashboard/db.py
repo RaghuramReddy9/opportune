@@ -314,6 +314,7 @@ def init_db(db_path: Path | None = None) -> None:
                 final_config_json TEXT DEFAULT '{}',
                 profile_id TEXT DEFAULT '',
                 created_at TEXT NOT NULL,
+                revision INTEGER NOT NULL DEFAULT 1,
                 updated_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_onboarding_updated ON onboarding_sessions(updated_at);
