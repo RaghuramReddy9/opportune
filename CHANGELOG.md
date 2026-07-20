@@ -6,6 +6,8 @@ The project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-20
+
 ### Added
 
 - One-command browser launch through `opportune run` and `opportune desktop`, with bounded readiness and loopback-only defaults.
@@ -38,7 +40,7 @@ The project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 
 - Email-derived application evidence and outreach remain outside v0.1 until the privacy, consent, and approval model in `docs/FUTURE_EMAIL_EVIDENCE_OUTREACH.md` is implemented and verified.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-07-17
 
 Initial public release candidate:
 

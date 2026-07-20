@@ -23,7 +23,7 @@ Opportune collects jobs from configured sources, keeps a local discovery pool, a
 
 Discovery contacts the public job sources you explicitly enable. Resume analysis stays on your machine when you choose built-in local analysis or a local Ollama endpoint. If you intentionally choose OpenAI, OpenRouter, or another remote-compatible provider, sanitized career text is sent to that provider after best-effort contact-detail removal. Opportune has no default analytics uploader.
 
-Status: early public alpha (`v0.1.0`).
+Status: Version 1.1 public-alpha candidate (`0.1.1`); publication of `v0.1.1` remains gated.
 
 ## Why Opportune
 
