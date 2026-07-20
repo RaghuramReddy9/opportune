@@ -195,12 +195,28 @@ def connect(db_path: Path | None = None) -> Iterator[sqlite3.Connection]:
 
 
 def init_db(db_path: Path | None = None) -> None:
+    target_path = Path(db_path if db_path is not None else get_db_path())
+    if target_path.exists():
+        with sqlite3.connect(target_path) as existing:
+            has_jobs = existing.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='jobs'"
+            ).fetchone()
+        if has_jobs:
+            from dashboard.migrations import Migration, migrate_database
+
+            migrate_database(
+                target_path,
+                (Migration(1, "version 1.1 schema", _ensure_columns),),
+                backup_dir=target_path.parent / "backups",
+            )
+
     with connect(db_path) as conn:
         table_exists = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='jobs'"
         ).fetchone()
         if not table_exists:
             conn.executescript(SCHEMA)
+            conn.execute("PRAGMA user_version = 1")
         else:
             _ensure_columns(conn)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
@@ -375,7 +391,10 @@ def _backfill_profile_versions(conn: sqlite3.Connection) -> None:
 
 def _ensure_columns(conn: sqlite3.Connection) -> None:
     """Add dashboard columns when upgrading an existing local DB."""
-    existing = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+    existing = {
+        row["name"] if isinstance(row, sqlite3.Row) else row[1]
+        for row in conn.execute("PRAGMA table_info(jobs)").fetchall()
+    }
     migrations = {
         "location": "ALTER TABLE jobs ADD COLUMN location TEXT DEFAULT ''",
         "apply_url": "ALTER TABLE jobs ADD COLUMN apply_url TEXT DEFAULT ''",
