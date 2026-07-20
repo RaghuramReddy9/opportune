@@ -115,6 +115,18 @@ def smoke(wheel: Path) -> None:
             for asset in assets:
                 _wait(f"http://127.0.0.1:{port}{asset.decode('utf-8')}")
             _wait(f"http://127.0.0.1:{port}/favicon.svg")
+            for command in (
+                ("doctor", "--json"),
+                ("privacy", "backup", "--json"),
+                ("privacy", "export", "--json"),
+            ):
+                subprocess.run(
+                    [str(_script(venv_dir, "opportune")), *command],
+                    check=True,
+                    cwd=root,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                )
         finally:
             process.terminate()
             try:
