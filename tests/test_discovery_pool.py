@@ -82,7 +82,7 @@ def test_active_catalog_can_be_materialized_without_another_scrape():
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "pool.db"
         init_db(path)
-        profile_id = create_profile("Catalog", "resume", "{}", db_path=path)
+        profile_id = create_profile("Catalog", "resume", '{"roles":["AI Engineer"],"target_levels":["entry_level"],"locations":["United States"],"work_modes":["remote"],"work_focuses":["applied_ai"],"visa_policy":"none","timeline":{"max_age_days":7}}', db_path=path)
         with connect(path) as conn:
             run_id = start_scrape_run(conn, "direct")
             reconcile_source_snapshot(

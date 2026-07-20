@@ -22,14 +22,16 @@ Implemented:
 - [x] Legacy Gmail, evidence, outreach, static-dashboard, and old cron paths removed.
 - [x] MIT license and generic public examples.
 
-Release work:
+Version 1.1 public-alpha release work:
 
 - [x] Backend tests, Ruff, ranking quality gate, frontend lint/build, dependency audit, and installed-wheel smoke test in the development tree.
 - [x] GitHub CI, Issue forms, PR template, security policy, and contributor docs.
-- [ ] Clean-history candidate passes the complete release checklist.
-- [ ] Maintainer reviews the exact candidate tree and commit.
-- [ ] Candidate is pushed to the private `opportune` repository.
-- [ ] Maintainer explicitly approves public visibility and `v0.1.0` release.
+- [x] Public repository and initial `v0.1.0` prerelease established.
+- [ ] Version `0.1.1` metadata, immutable installers, and release artifacts agree.
+- [ ] Governed benchmark and privacy-safe source-quality reports pass.
+- [ ] External pilot and accessibility checklist have no unresolved P0/P1 defects.
+- [ ] Exact candidate passes Ubuntu, Windows, and macOS release checks.
+- [ ] Maintainer reviews and explicitly approves `v0.1.1` publication.
 
 ## Planned v0.2 — application evidence and reviewed follow-up
 

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS onboarding_sessions (
     final_config_json TEXT DEFAULT '{}',
     profile_id TEXT DEFAULT '',
     created_at TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_onboarding_updated ON onboarding_sessions(updated_at);
@@ -38,11 +39,20 @@ def _loads(value: str, fallback):
         return fallback
 
 
+class OnboardingRevisionConflict(ValueError):
+    """Raised when a stale browser attempts to overwrite a newer draft."""
+
+
 class OnboardingStore:
     def __init__(self, db_path: Path | None = None):
         self.db_path = db_path
         with connect(self.db_path) as conn:
             conn.executescript(_SCHEMA)
+            columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(onboarding_sessions)")
+            }
+            if "revision" not in columns:
+                conn.execute("ALTER TABLE onboarding_sessions ADD COLUMN revision INTEGER NOT NULL DEFAULT 1")
 
     def create(self, *, filename: str, resume_text: str, provider: str, analysis: dict, questions: list[dict]) -> dict:
         session_id = uuid.uuid4().hex
@@ -83,20 +93,33 @@ class OnboardingStore:
             ).fetchone()
         return self._public(dict(row)) if row else None
 
-    def save_answers(self, session_id: str, answers: dict, final_config: dict) -> dict:
+    def save_answers(
+        self,
+        session_id: str,
+        answers: dict,
+        final_config: dict,
+        expected_revision: int,
+    ) -> dict:
         with connect(self.db_path) as conn:
             cursor = conn.execute(
                 """UPDATE onboarding_sessions
-                   SET status = 'review', answers_json = ?, final_config_json = ?, updated_at = ?
-                   WHERE session_id = ? AND status IN ('questions', 'review')""",
+                   SET status = 'review', answers_json = ?, final_config_json = ?,
+                       revision = revision + 1, updated_at = ?
+                   WHERE session_id = ? AND revision = ? AND status IN ('questions', 'review')""",
                 (
                     json.dumps(answers, ensure_ascii=False),
                     json.dumps(final_config, ensure_ascii=False),
                     _now(),
                     session_id,
+                    expected_revision,
                 ),
             )
         if cursor.rowcount == 0:
+            current = self.get(session_id)
+            if current["revision"] != expected_revision:
+                raise OnboardingRevisionConflict(
+                    "This onboarding draft changed in another browser. Reload the newest draft."
+                )
             raise ValueError("Onboarding answers cannot be changed in this state")
         return self.get(session_id)
 
@@ -126,6 +149,7 @@ class OnboardingStore:
             "profile_id": row["profile_id"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
+            "revision": int(row.get("revision") or 1),
         }
         if include_resume:
             result["resume_text"] = row["resume_text"]

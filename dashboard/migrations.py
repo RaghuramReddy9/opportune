@@ -68,6 +68,11 @@ def migrate_database(
     try:
         _integrity_check(connection)
         current = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        if versions and current > versions[-1]:
+            raise RuntimeError(
+                f"database schema version {current} is newer than supported "
+                f"version {versions[-1]}"
+            )
         pending = [item for item in ordered if item.version > current]
         if not pending:
             return {

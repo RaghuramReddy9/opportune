@@ -100,6 +100,25 @@ class PublicOpsSafetyTests(unittest.TestCase):
         with db.connect() as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0], 1)
 
+    def test_backup_and_restore_include_provider_settings_and_secret(self):
+        data_dir = self.tmp_path / "data"
+        provider_dir = data_dir / "onboarding"
+        provider_dir.mkdir(parents=True)
+        settings = provider_dir / "llm.json"
+        secret = provider_dir / "llm.key"
+        settings.write_text('{"provider":"openai"}', encoding="utf-8")
+        secret.write_text("private-key", encoding="utf-8")
+
+        with patch("public_ops.cfg.JOB_AGENT_HOME", data_dir):
+            backup_path = backup_local_state()
+            settings.unlink()
+            secret.unlink()
+            restore_local_state(backup_path, confirm="RESTORE")
+
+        self.assertEqual(settings.read_text(encoding="utf-8"), '{"provider":"openai"}')
+        self.assertEqual(secret.read_text(encoding="utf-8"), "private-key")
+        self.assertEqual(stat.S_IMODE(secret.stat().st_mode), 0o600)
+
     def test_restore_rejects_unsafe_archive_members(self):
         archive_path = self.tmp_path / "unsafe.zip"
         with zipfile.ZipFile(archive_path, "w") as archive:

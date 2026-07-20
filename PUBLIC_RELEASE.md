@@ -14,7 +14,7 @@ The canonical repository is public. Normal changes land through its protected pu
 
 ## Candidate must contain
 
-- Source modules used by v0.1.
+- Source modules used by the Version 1.1 public alpha.
 - React source and production assets.
 - Tests and ranking fixtures.
 - Generic config/profile/resume examples.
@@ -113,30 +113,30 @@ After building the wheel, inspect both archives and repeat the same checks again
 - Frontend production dependency audit passes.
 - Direct dependencies match direct imports.
 - Optional Apify support is exposed through `opportune[apify]`.
-- Wheel metadata reports package/version `opportune 0.1.0`, MIT license, README, and repository URLs.
+- Wheel metadata reports package/version `opportune 0.1.1`, MIT license, README, and repository URLs.
 
 ## GitHub readiness
 
-Before public visibility:
+Before merging or publishing the release:
 
 - CI passes on the candidate commit.
 - Issues are enabled.
 - Private vulnerability reporting is enabled.
 - Bug, feature, and source-request forms are present.
 - PR template and code of conduct are visible.
-- Repository description and topics describe Opportune v0.1 only.
+- Repository description and topics describe the Version 1 public-alpha scope.
 - Default branch protection requires CI before merge.
 
 ## Maintainer approval packet
 
 Show the maintainer:
 
-- private repository URL;
+- canonical public repository URL;
 - candidate commit hash;
 - complete top-level tree;
 - file count and language summary;
 - final test, lint, build, quality, package, vulnerability, and secret-scan results;
 - known limitations;
-- exact command that would push or change visibility.
+- exact commands that would merge, tag, and publish.
 
 No push, visibility change, tag, release, or deletion occurs before the corresponding approval.

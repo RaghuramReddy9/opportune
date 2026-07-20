@@ -100,6 +100,7 @@ export interface SearchPlan {
 
 export interface OnboardingSession {
   session_id: string;
+  revision: number;
   status: 'questions' | 'review' | 'approved';
   filename: string;
   provider: string;

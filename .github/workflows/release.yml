@@ -1,0 +1,44 @@
+name: Publish release artifacts
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build packaged frontend
+        working-directory: frontend
+        run: npm ci && npm run lint && npm run build
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - name: Verify exact candidate
+        run: |
+          test "$GITHUB_REF_NAME" = "v$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          uv run ruff check .
+          uv run pytest -q
+          uv run opp quality --json
+      - name: Build and verify artifacts
+        run: |
+          uv build
+          uv run python scripts/generate_release_manifest.py dist
+          uv run python scripts/smoke_installed.py "$(find dist -name '*.whl' -print -quit)"
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

@@ -1,69 +1,35 @@
-# One-command source installer for Windows PowerShell.
-# Optional environment variables:
-#   $env:OPPORTUNE_REF = "main"
-#   $env:OPPORTUNE_DIR = "$HOME\opportune"
-#   $env:OPPORTUNE_NO_RUN = "1"
-
 $ErrorActionPreference = "Stop"
 
-$repoUrl = if ($env:OPPORTUNE_REPO_URL) { $env:OPPORTUNE_REPO_URL } else { "https://github.com/RaghuramReddy9/opportune.git" }
-$repoRef = if ($env:OPPORTUNE_REF) { $env:OPPORTUNE_REF } else { "main" }
-$installDir = if ($env:OPPORTUNE_DIR) { $env:OPPORTUNE_DIR } else { Join-Path $HOME "opportune" }
+$version = if ($env:OPPORTUNE_VERSION) { $env:OPPORTUNE_VERSION } else { "0.1.1" }
+$repository = if ($env:OPPORTUNE_REPOSITORY) { $env:OPPORTUNE_REPOSITORY } else { "RaghuramReddy9/opportune" }
+$baseUrl = if ($env:OPPORTUNE_RELEASE_BASE_URL) { $env:OPPORTUNE_RELEASE_BASE_URL } else { "https://github.com/$repository/releases/download/v$version" }
+$wheel = "opportune-$version-py3-none-any.whl"
+$workDir = Join-Path ([IO.Path]::GetTempPath()) ("opportune-install-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $workDir | Out-Null
 
-function Stop-Install([string]$Message) {
-    Write-Error "Opportune installation stopped: $Message"
-    exit 1
-}
-
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Stop-Install "Git is required. Install Git and run this command again."
-}
-
-if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "uv was not found; installing it with the official installer..."
-    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
-    $env:Path = "$HOME\.local\bin;$HOME\.cargo\bin;$env:Path"
-}
-
-if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Stop-Install "uv was installed but is not available in this PowerShell session. Restart PowerShell and try again."
-}
-
-$gitDir = Join-Path $installDir ".git"
-if (Test-Path $gitDir) {
-    $status = (& git -C $installDir status --porcelain)
-    if ($status) {
-        Stop-Install "$installDir has local changes. Save them before running the updater."
-    }
-    $currentRef = (& git -C $installDir branch --show-current).Trim()
-    if ($currentRef -ne $repoRef) {
-        Stop-Install "$installDir is on '$currentRef'. Switch it to '$repoRef' before updating."
-    }
-    Write-Host "Updating Opportune in $installDir..."
-    & git -C $installDir pull --ff-only origin $repoRef
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-} elseif (Test-Path $installDir) {
-    Stop-Install "$installDir exists but is not an Opportune Git checkout."
-} else {
-    Write-Host "Downloading Opportune into $installDir..."
-    & git clone --branch $repoRef --depth 1 $repoUrl $installDir
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-}
-
-Write-Host "Installing Python dependencies..."
-Push-Location $installDir
 try {
-    # Copy mode avoids Windows cloud-sync hardlink errors such as OS error 396.
-    & uv sync --frozen --link-mode copy
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-    if ($env:OPPORTUNE_NO_RUN -eq "1") {
-        Write-Host "Opportune is installed in $installDir"
-        Write-Host "Start it with: cd $installDir; uv run opportune run"
-    } else {
-        & uv run opportune run
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Host "uv was not found; installing it with the official installer..."
+        Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+        $env:Path = "$HOME\.local\bin;$HOME\.cargo\bin;$env:Path"
     }
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw "uv is unavailable. Restart PowerShell and try again." }
+
+    $wheelPath = Join-Path $workDir $wheel
+    $sumsPath = Join-Path $workDir "SHA256SUMS"
+    Invoke-WebRequest -UseBasicParsing "$baseUrl/$wheel" -OutFile $wheelPath
+    Invoke-WebRequest -UseBasicParsing "$baseUrl/SHA256SUMS" -OutFile $sumsPath
+    $escapedWheel = [regex]::Escape($wheel)
+    $sumLine = Get-Content $sumsPath | Where-Object { $_ -match "^([0-9a-fA-F]{64})\s+\*?$escapedWheel$" } | Select-Object -First 1
+    if (-not $sumLine) { throw "Checksum for $wheel is missing." }
+    $expected = ($sumLine -split '\s+')[0].ToLowerInvariant()
+    $actual = (Get-FileHash -Algorithm SHA256 $wheelPath).Hash.ToLowerInvariant()
+    if ($actual -ne $expected) { throw "Checksum verification failed." }
+
+    & uv tool install --force --link-mode copy $wheelPath
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Write-Host "Installed Opportune v$version. Start it with: opportune run"
+    if ($env:OPPORTUNE_NO_RUN -ne "1") { & opportune run @args }
 } finally {
-    Pop-Location
+    Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
 }

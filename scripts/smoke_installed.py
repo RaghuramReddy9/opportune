@@ -5,8 +5,10 @@ import argparse
 import os
 import re
 import socket
+import shutil
 import subprocess
 import tempfile
+import sys
 import time
 import urllib.request
 import venv
@@ -58,15 +60,28 @@ def smoke(wheel: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="opportune-wheel-smoke-") as tmp:
         root = Path(tmp)
         venv_dir = root / "venv"
-        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        uv = shutil.which("uv") or next(
+            (
+                str(path) for path in (Path.home() / ".local/bin/uv", Path.home() / ".cargo/bin/uv")
+                if path.is_file()
+            ),
+            None,
+        )
+        if uv:
+            subprocess.run(
+                [uv, "venv", "--python", sys.executable, str(venv_dir)],
+                check=True,
+            )
+        else:
+            venv.EnvBuilder(with_pip=True).create(venv_dir)
         python = _python(venv_dir)
         clean_env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
-        subprocess.run(
-            [str(python), "-m", "pip", "install", "--quiet", "--disable-pip-version-check", str(wheel)],
-            check=True,
-            cwd=root,
-            env=clean_env,
+        install_command = (
+            [uv, "pip", "install", "--python", str(python), str(wheel)]
+            if uv
+            else [str(python), "-m", "pip", "install", "--quiet", str(wheel)]
         )
+        subprocess.run(install_command, check=True, cwd=root, env=clean_env)
         subprocess.run(
             [str(_script(venv_dir, "opportune")), "--help"],
             check=True,
@@ -115,6 +130,18 @@ def smoke(wheel: Path) -> None:
             for asset in assets:
                 _wait(f"http://127.0.0.1:{port}{asset.decode('utf-8')}")
             _wait(f"http://127.0.0.1:{port}/favicon.svg")
+            for command in (
+                ("doctor", "--json"),
+                ("privacy", "backup", "--json"),
+                ("privacy", "export", "--json"),
+            ):
+                subprocess.run(
+                    [str(_script(venv_dir, "opportune")), *command],
+                    check=True,
+                    cwd=root,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                )
         finally:
             process.terminate()
             try:
