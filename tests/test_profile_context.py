@@ -27,7 +27,7 @@ def test_context_is_immutable_and_contains_compiled_config(tmp_path):
     profile_id = create_profile(
         "Candidate",
         "private resume text",
-        json.dumps({"roles": ["Applied AI Engineer"], "locations": ["United States"]}),
+        json.dumps({"roles": ["Applied AI Engineer"], "target_levels": ["entry_level"], "locations": ["United States"], "work_modes": ["remote"], "work_focuses": ["applied_ai"], "visa_policy": "none", "timeline": {"max_age_days": 7}}),
         db_path=db_path,
     )
 
@@ -52,4 +52,18 @@ def test_context_fails_closed_for_malformed_compiled_profile(tmp_path):
     create_profile("Candidate", "private", "not-json", db_path=db_path)
 
     with pytest.raises(ProfileApprovalRequired, match="invalid"):
+        get_approved_profile_context(db_path=db_path)
+
+def test_context_fails_closed_for_incomplete_compiled_profile(tmp_path):
+    from profile_context import ProfileApprovalRequired, get_approved_profile_context
+
+    db_path = tmp_path / "incomplete.db"
+    init_db(db_path)
+    create_profile(
+        "Candidate",
+        "private",
+        json.dumps({"roles": ["AI Engineer"], "locations": ["United States"]}),
+        db_path=db_path,
+    )
+    with pytest.raises(ProfileApprovalRequired, match="incomplete"):
         get_approved_profile_context(db_path=db_path)

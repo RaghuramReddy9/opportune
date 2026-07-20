@@ -22,6 +22,37 @@ class ApprovedProfileContext:
     revision: int
     compiled_config: Mapping[str, Any] = field(repr=False)
 
+def _validate_compiled_config(compiled: dict[str, Any]) -> None:
+    required_lists = ("roles", "target_levels", "locations", "work_modes", "work_focuses")
+    for field_name in required_lists:
+        value = compiled.get(field_name)
+        if not isinstance(value, list) or not value or any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
+            raise ProfileApprovalRequired(
+                "The active approved profile is incomplete; review and approve it again."
+            )
+    if compiled.get("visa_policy") not in {
+        "none",
+        "needs_sponsorship",
+        "opt_cpt",
+        "custom",
+    }:
+        raise ProfileApprovalRequired(
+            "The active approved profile has an invalid authorization policy; review it again."
+        )
+    timeline = compiled.get("timeline")
+    max_age_days = timeline.get("max_age_days") if isinstance(timeline, dict) else None
+    if (
+        isinstance(max_age_days, bool)
+        or not isinstance(max_age_days, int)
+        or not 1 <= max_age_days <= 30
+    ):
+        raise ProfileApprovalRequired(
+            "The active approved profile has an invalid freshness policy; review it again."
+        )
+
+
 
 def get_approved_profile_context(
     *,
@@ -57,6 +88,7 @@ def get_approved_profile_context(
         raise ProfileApprovalRequired("The active approved profile is invalid; review and approve it again.") from exc
     if not isinstance(compiled, dict):
         raise ProfileApprovalRequired("The active approved profile is invalid; review and approve it again.")
+    _validate_compiled_config(compiled)
 
     profile_id = str(active.get("profile_id") or "").strip()
     if not profile_id:

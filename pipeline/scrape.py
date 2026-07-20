@@ -689,10 +689,7 @@ def scrape_all(
     approved_context = get_approved_profile_context()
     scrape_started = time.monotonic()
     _log_event("scrape_start", window=run_window, dry_run=dry_run, max_workers=max_workers)
-    from config import get_profile_config
-
-    profile_config = get_profile_config()
-    max_age_days = int((profile_config.get("timeline") or {}).get("max_age_days", 7))
+    max_age_days = int(approved_context.compiled_config["timeline"]["max_age_days"])
     active_profile_id = approved_context.profile_id
     # Initialize discovery funnel
     funnel = new_funnel()

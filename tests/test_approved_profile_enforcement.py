@@ -73,7 +73,7 @@ def test_approved_context_uses_immutable_version_and_excludes_resume_from_repr(t
     profile_id = create_profile(
         "Candidate",
         "super secret resume text",
-        json.dumps({"roles": ["AI Engineer"], "locations": ["United States"]}),
+        json.dumps({"roles": ["AI Engineer"], "target_levels": ["entry_level"], "locations": ["United States"], "work_modes": ["remote"], "work_focuses": ["applied_ai"], "visa_policy": "none", "timeline": {"max_age_days": 7}}),
         db_path=db,
     )
 
