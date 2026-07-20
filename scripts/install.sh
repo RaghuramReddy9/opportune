@@ -1,62 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-command source installer for Ubuntu, macOS, and other Bash environments.
-# Override these values when installing a different branch or location:
-#   OPPORTUNE_REF=main OPPORTUNE_DIR="$HOME/opportune" bash install.sh
+VERSION="${OPPORTUNE_VERSION:-0.1.1}"
+REPOSITORY="${OPPORTUNE_REPOSITORY:-RaghuramReddy9/opportune}"
+BASE_URL="${OPPORTUNE_RELEASE_BASE_URL:-https://github.com/${REPOSITORY}/releases/download/v${VERSION}}"
+WHEEL="opportune-${VERSION}-py3-none-any.whl"
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/opportune-install.XXXXXX")"
 
-REPO_URL="${OPPORTUNE_REPO_URL:-https://github.com/RaghuramReddy9/opportune.git}"
-REPO_REF="${OPPORTUNE_REF:-main}"
-INSTALL_DIR="${OPPORTUNE_DIR:-$HOME/opportune}"
+cleanup() { rm -rf -- "$WORK_DIR"; }
+fail() { printf 'Opportune installation stopped: %s\n' "$1" >&2; exit 1; }
+trap cleanup EXIT
 
-fail() {
-  printf 'Opportune installation stopped: %s\n' "$1" >&2
-  exit 1
-}
-
-command -v git >/dev/null 2>&1 || fail "Git is required. Install Git and run this command again."
-
+command -v curl >/dev/null 2>&1 || fail "curl is required to download the verified release."
 if ! command -v uv >/dev/null 2>&1; then
-  command -v curl >/dev/null 2>&1 || fail "uv is missing and curl is not available to install it."
   printf 'uv was not found; installing it with the official installer...\n'
   curl -LsSf https://astral.sh/uv/install.sh | sh
-  if [ -f "$HOME/.local/bin/env" ]; then
-    # shellcheck disable=SC1091
-    . "$HOME/.local/bin/env"
-  fi
+  [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"
   export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 fi
+command -v uv >/dev/null 2>&1 || fail "uv is unavailable. Restart the shell and try again."
 
-command -v uv >/dev/null 2>&1 || \
-  fail "uv was installed but is not available in this shell. Restart the shell and try again."
-
-if [ -d "$INSTALL_DIR/.git" ]; then
-  [ -z "$(git -C "$INSTALL_DIR" status --porcelain)" ] || \
-    fail "$INSTALL_DIR has local changes. Save them before running the updater."
-  current_ref="$(git -C "$INSTALL_DIR" branch --show-current)"
-  [ "$current_ref" = "$REPO_REF" ] || \
-    fail "$INSTALL_DIR is on '$current_ref'. Switch it to '$REPO_REF' before updating."
-  printf 'Updating Opportune in %s...\n' "$INSTALL_DIR"
-  git -C "$INSTALL_DIR" pull --ff-only origin "$REPO_REF"
-elif [ -e "$INSTALL_DIR" ]; then
-  fail "$INSTALL_DIR exists but is not an Opportune Git checkout."
+printf 'Downloading immutable Opportune v%s release artifacts...\n' "$VERSION"
+curl -fL --proto '=https' --tlsv1.2 -o "$WORK_DIR/$WHEEL" "$BASE_URL/$WHEEL"
+curl -fL --proto '=https' --tlsv1.2 -o "$WORK_DIR/SHA256SUMS" "$BASE_URL/SHA256SUMS"
+EXPECTED="$(awk -v file="$WHEEL" '$2 == file || $2 == "*" file {print $1}' "$WORK_DIR/SHA256SUMS")"
+[ -n "$EXPECTED" ] || fail "Checksum for $WHEEL is missing."
+if command -v sha256sum >/dev/null 2>&1; then
+  ACTUAL="$(sha256sum "$WORK_DIR/$WHEEL" | awk '{print $1}')"
 else
-  printf 'Downloading Opportune into %s...\n' "$INSTALL_DIR"
-  git clone --branch "$REPO_REF" --depth 1 "$REPO_URL" "$INSTALL_DIR"
+  ACTUAL="$(shasum -a 256 "$WORK_DIR/$WHEEL" | awk '{print $1}')"
 fi
-
-printf 'Installing Python dependencies...\n'
-(
-  cd "$INSTALL_DIR"
-  # Copy mode is reliable on cloud-synced folders and works everywhere.
-  uv sync --frozen --link-mode copy
-)
-
-if [ "${OPPORTUNE_NO_RUN:-0}" = "1" ]; then
-  printf 'Opportune is installed in %s\n' "$INSTALL_DIR"
-  printf 'Start it with: cd %s && uv run opportune run\n' "$INSTALL_DIR"
-  exit 0
-fi
-
-cd "$INSTALL_DIR"
-exec uv run opportune run "$@"
+[ "$ACTUAL" = "$EXPECTED" ] || fail "Checksum verification failed."
+uv tool install --force "$WORK_DIR/$WHEEL"
+printf 'Installed Opportune v%s. Start it with: opportune run\n' "$VERSION"
+[ "${OPPORTUNE_NO_RUN:-0}" = "1" ] || exec opportune run "$@"
