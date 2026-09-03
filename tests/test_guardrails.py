@@ -587,7 +587,7 @@ class GuardrailTests(unittest.TestCase):
             "target_level": "entry_level",
             "resume_match_score": 80,
             "matched_keywords": ["llm", "agents", "python"],
-            "posted_date": "2026-07-13",
+            "freshness": "New (0-24h)",
         }
         employer_page = (
             "Build production LLM agents and synthetic data systems. " * 15
