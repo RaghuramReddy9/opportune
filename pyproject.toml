@@ -92,7 +92,7 @@ ranking = ["fixtures/*.json"]
 [dependency-groups]
 dev = [
     "httpx2>=2.5,<3",
-    "pytest>=9.1.1,<10",
+    "pytest>=9.2.0,<10",
     "ruff>=0.15,<1",
     "tomli>=2.0,<3; python_version < '3.11'",
 ]
